@@ -1,0 +1,18 @@
+crs: "EPSG:4326"
+aoi:
+    county_fips: "06037" # Los Angeles County
+    bbox: [-118.74, 33.64, -117.74, 34.64]
+sources:
+    cooling:
+        url: "https://data.ladwp.com/datasets/public/electric/cooling-centers.csv"
+    calheatscore:
+        base_url: "https://data.ladwp.com/datasets/public/electric/calheatscore.csv"
+        api_key: "YOUR_API_KEY"
+paths:
+    processed: "data/processed"
+score:
+    weights:
+        heat: 0.34
+        svi: 0.33
+        resource_gap: 0.33
+        

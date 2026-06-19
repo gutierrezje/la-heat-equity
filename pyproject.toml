@@ -1,0 +1,33 @@
+[project]
+name = "ccphit"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Jesus Gutierrez", email = "gutierrezje.work@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "arcgis>=2.4.3",
+    "geopandas>=1.1.3",
+    "pyarrow>=23.0.1",
+    "pyyaml>=6.0.3",
+    "requests>=2.34.2",
+]
+
+[project.scripts]
+ccphit = "ccphit:main"
+
+[build-system]
+requires = ["uv_build>=0.9.24,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "jupyterlab>=4.5.9",
+    "ruff>=0.15.17",
+]
+
+[tool.ruff]
+indent-width = 4
+
