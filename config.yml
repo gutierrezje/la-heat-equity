@@ -6,8 +6,7 @@ sources:
     cooling:
         url: "https://services.arcgis.com/RmCCgQtiZLDCtblq/ArcGIS/rest/services/Cooling_Centers_-_Los_Angeles_County_Regional_(Official_-_Updated_July_2022)_(View)/FeatureServer/0/query"
     calheatscore:
-        base_url: "https://data.ladwp.com/datasets/public/electric/calheatscore.csv"
-        api_key: "YOUR_API_KEY"
+        url: "https://services1.arcgis.com/PCHfdHz4GlDNAhBb/arcgis/rest/services/CalHeatScore_Live_Data_for_API_Use/FeatureServer/0/query"
 paths:
     processed: "data/processed"
 score:

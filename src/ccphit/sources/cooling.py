@@ -35,4 +35,4 @@ def fetch_cooling_centers(config: dict) -> gpd.GeoDataFrame:
 if __name__ == "__main__":
     config = load_config()
     cooling_centers = fetch_cooling_centers(config)
-    write_processed(cooling_centers, "cooling", config)
+    write_processed(cooling_centers, "cooling_centers", config)
