@@ -7,6 +7,11 @@ sources:
         url: "https://services.arcgis.com/RmCCgQtiZLDCtblq/ArcGIS/rest/services/Cooling_Centers_-_Los_Angeles_County_Regional_(Official_-_Updated_July_2022)_(View)/FeatureServer/0/query"
     calheatscore:
         url: "https://services1.arcgis.com/PCHfdHz4GlDNAhBb/arcgis/rest/services/CalHeatScore_Live_Data_for_API_Use/FeatureServer/0/query"
+    zcta:
+        url: "https://services2.arcgis.com/FiaPA4ga0iQKduv3/arcgis/rest/services/Census_ZIP_Code_Tabulation_Areas_2010_v1/FeatureServer/0/query"
+    
+    county_boundary:
+        url: "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/13/query"
 paths:
     processed: "data/processed"
 score:
