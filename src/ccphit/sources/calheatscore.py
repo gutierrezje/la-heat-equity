@@ -5,9 +5,8 @@ from ccphit.common import load_config, write_processed
 
 def fetch_heat_scores(config: dict) -> pd.DataFrame:
     url = config["sources"]["calheatscore"]["url"]
-    where = f"ZIP_CODE LIKE '90%'"
     params = {
-        "where": where,
+        "where": "1=1",
         "outFields": "*",
         "returnGeometry": "false",
         "f": "json",
@@ -27,12 +26,12 @@ def fetch_heat_scores(config: dict) -> pd.DataFrame:
     df["CHS_Day_5"] = df["CHS_Day_5"].astype(int)
     df["CHS_Day_6"] = df["CHS_Day_6"].astype(int)
     df = df.rename(columns={
-        "ZIP_CODE": "zcta",
+        "ZIP_CODE": "zip",
         "DATE": "date",
-        "CHS_Day_0": "heat_risk_0",
     })
-    df["zcta"] = df["zcta"].astype(str).str.zfill(5)
-    return df[["zcta", "date", "heat_risk_0"]]
+    df["heat_risk"] = df.filter(like="CHS_Day_").max(axis=1)
+    df["zip"] = df["zip"].astype(str).str.zfill(5)
+    return df[["zip", "date", "heat_risk"]]
 
 if __name__ == "__main__":
     config = load_config()
