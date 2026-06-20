@@ -4,7 +4,7 @@ import os
 import requests
 import geopandas as gpd
 
-from ccphit.common import load_config
+from ccphit.common import clip_to_aoi, write_processed, load_config
 
 def fetch_cooling_centers(config: dict) -> gpd.GeoDataFrame:
     url = config["sources"]["cooling"]["url"]
@@ -23,9 +23,16 @@ def fetch_cooling_centers(config: dict) -> gpd.GeoDataFrame:
         all_features.extend(features)
         offset += len(data["features"])
 
-    return gpd.GeoDataFrame.from_features(all_features).set_crs(epsg=4326)
+    gdf = gpd.GeoDataFrame.from_features(all_features)
+    gdf.set_crs(epsg=4326, inplace=True)
+    gdf = clip_to_aoi(gdf, config["aoi"])
+    gdf = gdf[gdf.geometry.notna() & ~gdf.geometry.is_empty]
+    gdf = gdf[["Site_Name", "Address", "Days_Hours_of_Operation", "geometry"]]
+    gdf.columns = ["site_name", "address", "days_hours_of_operation", "geometry"]
+    
+    return gdf
 
 if __name__ == "__main__":
     config = load_config()
     cooling_centers = fetch_cooling_centers(config)
-    print(cooling_centers.head())
+    write_processed(cooling_centers, "cooling", config)
