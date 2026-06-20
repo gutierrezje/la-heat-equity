@@ -4,7 +4,7 @@ aoi:
     bbox: [-118.74, 33.64, -117.74, 34.64]
 sources:
     cooling:
-        url: "https://data.ladwp.com/datasets/public/electric/cooling-centers.csv"
+        url: "https://services.arcgis.com/RmCCgQtiZLDCtblq/ArcGIS/rest/services/Cooling_Centers_-_Los_Angeles_County_Regional_(Official_-_Updated_July_2022)_(View)/FeatureServer/0/query"
     calheatscore:
         base_url: "https://data.ladwp.com/datasets/public/electric/calheatscore.csv"
         api_key: "YOUR_API_KEY"
