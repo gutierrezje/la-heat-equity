@@ -1,7 +1,7 @@
 crs: "EPSG:4326"
 aoi:
     county_fips: "06037" # Los Angeles County
-    bbox: [-118.74, 33.64, -117.74, 34.64]
+    bbox: [-119.05, 32.65, -117.55, 34.92] # padded LA County bounds (incl. Channel Islands)
 sources:
     cooling:
         url: "https://services.arcgis.com/RmCCgQtiZLDCtblq/ArcGIS/rest/services/Cooling_Centers_-_Los_Angeles_County_Regional_(Official_-_Updated_July_2022)_(View)/FeatureServer/0/query"
