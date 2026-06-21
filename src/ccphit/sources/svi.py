@@ -17,10 +17,11 @@ def fetch_svi_tracts(config: dict) -> pd.DataFrame:
     gdf = gdf[gdf["RPL_THEMES"] != -999]
 
     # Keep + rename
-    gdf = gdf[["FIPS", "RPL_THEMES", "geometry"]].rename(
+    gdf = gdf[["FIPS", "RPL_THEMES", "E_TOTPOP", "geometry"]].rename(
         columns={
             "FIPS": "tract_geoid",
-            "RPL_THEMES": "svi"
+            "RPL_THEMES": "svi",
+            "E_TOTPOP": "pop",
         }
     )
     gdf = gdf.to_crs(epsg=4326)
