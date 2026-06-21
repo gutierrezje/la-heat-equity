@@ -12,8 +12,12 @@ sources:
     
     county_boundary:
         url: "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/13/query"
+    svi:
+        gdb: "SVI2022_CALIFORNIA_tract.gdb"
+        layer: "SVI2022_CALIFORNIA_tract"
 paths:
     processed: "data/processed"
+    raw: "data/raw"
 score:
     weights:
         heat: 0.34
