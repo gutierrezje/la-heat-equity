@@ -1,10 +1,9 @@
 # fetch cooling centers from ArcGIS
 
-import os
 import requests
 import geopandas as gpd
 
-from ccphit.common import clip_to_aoi, write_processed, load_config
+from ccphit.common import clip_to_aoi, load_config, write_geojson, write_processed
 
 def fetch_cooling_centers(config: dict) -> gpd.GeoDataFrame:
     url = config["sources"]["cooling"]["url"]
@@ -36,3 +35,4 @@ if __name__ == "__main__":
     config = load_config()
     cooling_centers = fetch_cooling_centers(config)
     write_processed(cooling_centers, "cooling_centers", config)
+    write_geojson(cooling_centers, "cooling_centers", config)

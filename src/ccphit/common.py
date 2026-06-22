@@ -38,3 +38,16 @@ def write_processed(df: gpd.GeoDataFrame | pd.DataFrame, name: str, config: dict
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(path)
     print(f"{name}: {df.shape[0]} features -> {path}")
+
+
+def write_geojson(
+    gdf: gpd.GeoDataFrame,
+    name: str,
+    config: dict,
+    columns: list[str] | None = None,
+) -> None:
+    path = Path(config["paths"]["processed"]) / f"{name}.geojson"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    out = gdf[columns] if columns is not None else gdf
+    out.to_file(path, driver="GeoJSON")
+    print(f"{name}: {len(out)} features -> {path}")
