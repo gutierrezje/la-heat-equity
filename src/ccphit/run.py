@@ -3,10 +3,6 @@
     uv run python -m ccphit.run                # full pipeline
     uv run python -m ccphit.run --from zcta     # resume from a stage onward
 
-Each stage runs as a subprocess reusing that module's __main__, so an orchestrated
-run is identical to running the modules by hand — just in the correct order and
-without the chance of silently skipping the intermediate heat -> ZCTA join.
-
 Dependency notes (what each stage produces / needs):
     cooling       -> cooling_centers                      (independent)
     calheatscore  -> heat_scores                          (independent)
