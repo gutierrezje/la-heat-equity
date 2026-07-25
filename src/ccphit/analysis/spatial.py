@@ -6,28 +6,28 @@ A choropleth always *looks* patterned — the eye invents clusters. Global Moran
 whether the pattern is more clustered than chance, and Local Moran (LISA) says which
 individual ZCTAs belong to a statistically significant cluster.
 
-The spatial **outliers** are the finding that a ranked list cannot produce: a low-risk
-ZCTA surrounded by high-risk ones is a place where the burden changes sharply over a short
-distance, usually at a municipal boundary.
+Spatial **outliers** are something a ranked list cannot show: an area with a low index
+surrounded by high-index neighbors, or the reverse. They are descriptive flags, not proof
+that a municipal boundary caused the difference.
 
-Weights note: LA County has one island (Santa Catalina, 90704) with no queen contiguity,
-which would be silently dropped from a contiguity matrix. K-nearest-neighbours keeps every
-ZCTA in the analysis at the cost of giving Catalina six mainland "neighbours" — so its
-result is reported but flagged rather than trusted.
+Weights note: LA County has one island (Santa Catalina, 90704) with no queen contiguity.
+It is reported separately rather than being assigned invented cross-water neighbors.
+Local results use false-discovery-rate control because every mainland area is tested.
 """
 
 import numpy as np
+import pandas as pd
 from esda.moran import Moran, Moran_Local
-from libpysal.weights import KNN, Queen
+from libpysal.weights import Queen
 
 from ccphit.analysis import figures
 from ccphit.config import CRS_M, load_config
 from ccphit.io import read_processed, write_processed
 
-K_NEIGHBOURS = 6
 PERMUTATIONS = 999
 SEED = 7
 ALPHA = 0.05
+ISLAND_LABEL = "not evaluated (island)"
 
 QUADRANT = {1: "HH hot spot", 2: "LH outlier", 3: "LL cold spot", 4: "HL outlier"}
 LISA_COLORS = {
@@ -36,23 +36,47 @@ LISA_COLORS = {
     "LH outlier": "#92c5de",
     "HL outlier": "#f4a582",
     "not significant": "#e8e8e8",
+    ISLAND_LABEL: "#ffffff",
 }
 
 
-def build_weights(gdf):
-    """Queen contiguity where possible, KNN when islands would be dropped."""
+def spatial_sample(gdf):
+    """Keep land-contiguous areas together and report islands separately.
+
+    Switching the entire county to K-nearest neighbors because Catalina has no land
+    neighbor changes every mainland relationship. The estimand here is contiguous
+    clustering, so an island is an explicit non-estimable case rather than a reason to
+    replace the graph.
+    """
     queen = Queen.from_dataframe(gdf, use_index=False, silence_warnings=True)
-    if queen.islands:
-        w = KNN.from_dataframe(gdf, k=K_NEIGHBOURS)
-        note = (
-            f"KNN(k={K_NEIGHBOURS}) — {len(queen.islands)} island(s) have no queen "
-            "contiguity and would otherwise be dropped"
-        )
-    else:
-        w = queen
-        note = "Queen contiguity"
+    islands = gdf.iloc[queen.islands].copy()
+    mainland = gdf.drop(index=queen.islands).reset_index(drop=True)
+    w = Queen.from_dataframe(mainland, use_index=False, silence_warnings=True)
+    if w.islands:
+        raise ValueError(f"mainland queen graph still contains islands: {w.islands}")
     w.transform = "r"
-    return w, note
+    note = (
+        f"Queen contiguity; {len(islands)} island(s) reported separately "
+        "without invented cross-water neighbors"
+    )
+    return mainland, islands, w, note
+
+
+def benjamini_hochberg(p_values) -> np.ndarray:
+    """Benjamini-Hochberg adjusted p-values for false-discovery-rate control."""
+    p = np.asarray(p_values, dtype=float)
+    if p.ndim != 1 or np.isnan(p).any() or ((p < 0) | (p > 1)).any():
+        raise ValueError("p-values must be a one-dimensional array in [0, 1]")
+    n = len(p)
+    if n == 0:
+        return p.copy()
+    order = np.argsort(p)
+    ranked = p[order]
+    adjusted = ranked * n / np.arange(1, n + 1)
+    adjusted = np.minimum.accumulate(adjusted[::-1])[::-1].clip(0, 1)
+    out = np.empty_like(adjusted)
+    out[order] = adjusted
+    return out
 
 
 def global_moran(gdf, cols, w):
@@ -63,18 +87,18 @@ def global_moran(gdf, cols, w):
             {"variable": col, "morans_I": mi.I, "z": mi.z_sim, "p": mi.p_sim,
              "expected_I": mi.EI}
         )
-    import pandas as pd
-
     return pd.DataFrame(rows)
 
 
 def local_moran(gdf, col, w):
     lm = Moran_Local(gdf[col].to_numpy(), w, permutations=PERMUTATIONS, seed=SEED)
     out = gdf[["zcta", "place_name", "POP100", col]].copy()
-    out["lisa"] = [
-        QUADRANT[q] if p < ALPHA else "not significant" for q, p in zip(lm.q, lm.p_sim)
-    ]
     out["lisa_p"] = lm.p_sim
+    out["lisa_q"] = benjamini_hochberg(lm.p_sim)
+    out["lisa"] = [
+        QUADRANT[quadrant] if q_value < ALPHA else "not significant"
+        for quadrant, q_value in zip(lm.q, out["lisa_q"])
+    ]
     out["spatial_lag"] = lm.w.sparse @ (
         (gdf[col] - gdf[col].mean()) / gdf[col].std()
     ).to_numpy()
@@ -117,8 +141,8 @@ def figure_lisa_map(gdf, lisa, note):
                      label=f"{label} ({len(sub)})")
     ax.set_axis_off()
     ax.set_title(
-        "Statistically significant clusters of heat-equity risk\n"
-        f"Local Moran, {PERMUTATIONS} permutations, p < {ALPHA}",
+        "Clusters of heat-equity index values\n"
+        f"Local Moran, {PERMUTATIONS} permutations, FDR q < {ALPHA}",
     )
     ax.legend(loc="lower left", title=None)
     fig.text(0.5, 0.055, f"weights: {note}", ha="center", fontsize=7.5,
@@ -144,20 +168,28 @@ if __name__ == "__main__":
     gdf = scored.dropna(subset=["draft_score", *pcts]).to_crs(CRS_M).reset_index(drop=True)
     print(f"n = {len(gdf)} scored ZCTAs")
 
-    w, note = build_weights(gdf)
+    mainland, islands, w, note = spatial_sample(gdf)
     print(f"weights: {note}")
 
     print("\n=== global Moran's I ===")
-    gm = global_moran(gdf, ["draft_score", *pcts], w)
+    gm = global_moran(mainland, ["draft_score", *pcts], w)
     print(gm.round(4).to_string(index=False))
     print("\n(I = 0 would be spatial randomness; p is the permutation pseudo p-value)")
 
     print("\n=== local Moran (LISA) on draft_score ===")
-    lisa = local_moran(gdf, "draft_score", w)
+    lisa = local_moran(mainland, "draft_score", w)
+    if len(islands):
+        island_rows = islands[["zcta", "place_name", "POP100", "draft_score"]].copy()
+        island_rows["lisa_p"] = np.nan
+        island_rows["lisa_q"] = np.nan
+        island_rows["lisa"] = ISLAND_LABEL
+        island_rows["spatial_lag"] = np.nan
+        island_rows["z_score"] = np.nan
+        lisa = pd.concat([lisa, island_rows], ignore_index=True)
     print(lisa["lisa"].value_counts().to_string())
     write_processed(lisa, "spatial_lisa", config)
 
-    print("\n--- spatial outliers: where the burden changes sharply ---")
+    print("\n--- spatial outliers: where the index changes sharply ---")
     for kind in ["LH outlier", "HL outlier"]:
         sub = lisa[lisa["lisa"] == kind].nlargest(5, "POP100")
         for r in sub.itertuples():
@@ -172,5 +204,8 @@ if __name__ == "__main__":
     print(f"\nhot-spot ZCTAs hold {hh['POP100'].sum() / lisa['POP100'].sum():.0%} "
           "of the scored population")
 
-    figures.save(figure_moran_scatter(lisa, "draft_score"), "spatial_moran_scatter")
+    figures.save(
+        figure_moran_scatter(lisa[lisa["lisa"] != ISLAND_LABEL], "draft_score"),
+        "spatial_moran_scatter",
+    )
     figures.save(figure_lisa_map(gdf, lisa, note), "spatial_lisa_map")

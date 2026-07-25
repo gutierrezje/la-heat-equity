@@ -1,15 +1,13 @@
-"""Who actually bears the burden, and does "worst place" mean "most people at risk"?
+"""How many residents live in explicitly defined heat × vulnerability categories?
 
     uv run python -m ccphit.analysis.equity
 
-Three distributional questions the composite score cannot answer on its own:
+Two distributional questions the composite score cannot answer on its own:
 
-1. **How concentrated is risk?** If a few ZCTAs carried most of it, targeting would be
-   easy. A concentration curve says whether that is true.
-2. **Intensity vs burden.** `draft_score` is an intensity (D8) — conditions *per place*.
-   Multiplying by population answers a different question, and the two rankings need not
-   agree. Whether they do is an empirical matter, not a caveat.
-3. **Does the county look different per-place than per-person?** The whole point of D8's
+1. **How many people live in each declared priority category?** This sums Census
+   population after applying visible heat and vulnerability rules; it does not convert an
+   ordinal index into cases or "burden."
+2. **Does the county look different per-place than per-person?** The whole point of D8's
    population weighting, checked distributionally.
 
 Also draws the bivariate heat x vulnerability map the proposal asks for, which shows two
@@ -32,17 +30,40 @@ BIVARIATE = [
 ]
 
 
-def concentration(d: pd.DataFrame, value: str, weight: str) -> tuple[np.ndarray, np.ndarray, float]:
-    """Cumulative share of `weight` against cumulative share of total `value*weight`.
+HEAT_BANDS = ["lower (0–2)", "high (3)", "extreme (4)"]
+SVI_BANDS = ["lower third", "middle third", "upper third"]
 
-    Ordered worst-first, so a steep start means risk is concentrated in few people.
-    Returns (x, y, concentration index) where 0 = perfectly even.
-    """
-    s = d.sort_values(value, ascending=False)
-    x = np.concatenate([[0.0], (s[weight].cumsum() / s[weight].sum()).to_numpy()])
-    burden = s[value] * s[weight]
-    y = np.concatenate([[0.0], (burden.cumsum() / burden.sum()).to_numpy()])
-    return x, y, 2 * np.trapezoid(y, x) - 1
+
+def classify_priority_cells(d: pd.DataFrame) -> pd.DataFrame:
+    """Assign transparent heat × vulnerability categories used by map and totals."""
+    out = d.dropna(subset=["heat_risk", "svi_pct", "POP100"]).copy()
+    out["heat_band"] = pd.Categorical(
+        np.select(
+            [out["heat_risk"] <= 2, out["heat_risk"] == 3],
+            HEAT_BANDS[:2],
+            default=HEAT_BANDS[2],
+        ),
+        categories=HEAT_BANDS,
+        ordered=True,
+    )
+    out["svi_band"] = pd.Categorical(
+        pd.qcut(out["svi_pct"], 3, labels=SVI_BANDS),
+        categories=SVI_BANDS,
+        ordered=True,
+    )
+    return out
+
+
+def priority_population(d: pd.DataFrame) -> pd.DataFrame:
+    """Count areas and residents in each declared cell; every row contributes once."""
+    cells = classify_priority_cells(d)
+    summary = (
+        cells.groupby(["svi_band", "heat_band"], observed=False)
+        .agg(zctas=("zcta", "size"), population=("POP100", "sum"))
+        .reset_index()
+    )
+    summary["population_share"] = summary["population"] / summary["population"].sum()
+    return summary
 
 
 def per_place_vs_per_person(d: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
@@ -60,52 +81,35 @@ def per_place_vs_per_person(d: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
     return out
 
 
-def figure_concentration(d, x, y, idx):
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5), width_ratios=[1, 1.1])
-
-    ax = axes[0]
-    ax.plot([0, 1], [0, 1], "--", lw=1.2, color=figures.MUTED, label="perfectly even")
-    ax.plot(x, y, lw=2.4, color=figures.PALETTE["urban"], label="observed")
-    ax.fill_between(x, y, x, alpha=0.12, color=figures.PALETTE["urban"])
-    for q in (0.10, 0.25):
-        yi = np.interp(q, x, y)
-        ax.plot([q, q], [0, yi], lw=0.8, color=figures.MUTED)
-        ax.annotate(
-            f"worst {q:.0%} of people\nbear {yi:.0%} of risk",
-            (q, yi), textcoords="offset points", xytext=(12, -22), fontsize=8,
-        )
-    ax.set_xlabel("cumulative share of population (worst-scoring first)")
-    ax.set_ylabel("cumulative share of total risk")
-    ax.set_title("Risk is widespread, not concentrated")
-    ax.legend(loc="lower right")
-    figures.annotate(ax, f"concentration index = {idx:+.3f}", "upper left")
-
-    ax = axes[1]
-    top_burden = set(d.nlargest(10, "burden")["zcta"])
-    top_score = set(d.nlargest(10, "draft_score")["zcta"])
-    both = top_burden & top_score
-    rows = []
-    for z in top_score | top_burden:
-        r = d[d["zcta"] == z].iloc[0]
-        rows.append((r["place_name"], r["draft_score"], r["burden"], z in both))
-    rows.sort(key=lambda t: -t[2])
-    names = [f"{n}" for n, _, _, _ in rows]
-    ypos = np.arange(len(rows))
-    ax.barh(
-        ypos,
-        [b / max(r[2] for r in rows) * 100 for _, _, b, _ in rows],
-        color=[figures.PALETTE["urban"] if inb else figures.MUTED for *_, inb in rows],
-        height=0.62,
+def figure_priority_population(summary: pd.DataFrame):
+    fig, ax = plt.subplots(figsize=(8.8, 5.4))
+    grid = summary.pivot(index="svi_band", columns="heat_band", values="population")
+    values = grid.to_numpy() / 1e6
+    im = ax.imshow(values, cmap="YlOrRd", aspect="auto")
+    for row in range(values.shape[0]):
+        for col in range(values.shape[1]):
+            cell = summary[
+                (summary["svi_band"] == grid.index[row])
+                & (summary["heat_band"] == grid.columns[col])
+            ].iloc[0]
+            ax.text(
+                col,
+                row,
+                f"{values[row, col]:.2f}M people\n{int(cell['zctas'])} areas",
+                ha="center",
+                va="center",
+                color="white" if values[row, col] > values.max() * 0.55 else figures.INK,
+                weight="bold",
+            )
+    ax.set_xticks(range(len(grid.columns)), grid.columns)
+    ax.set_yticks(range(len(grid.index)), grid.index)
+    ax.set_xlabel("current seven-day peak CalHeatScore")
+    ax.set_ylabel("social vulnerability rank")
+    ax.set_title(
+        "Residents of explicitly defined heat × vulnerability categories\n"
+        "Population in a flagged area—not an estimate of illness or people harmed"
     )
-    ax.scatter([s for _, s, _, _ in rows], ypos, color=figures.INK, s=22, zorder=3,
-               label="intensity (draft_score)")
-    ax.set_yticks(ypos, names, fontsize=8)
-    ax.invert_yaxis()
-    ax.set_xlabel("burden = score x population (bars, scaled)   ·   score (dots)")
-    ax.set_title(f"Intensity and burden disagree\n(only {len(both)} of 10 appear on both lists)")
-    ax.legend(loc="lower right")
-
-    fig.suptitle("Where risk is worst is not where most people are at risk", y=1.02)
+    fig.colorbar(im, ax=ax, label="millions of residents")
     return fig
 
 
@@ -172,23 +176,13 @@ if __name__ == "__main__":
     scored = read_processed("zcta_scores", config, geo=True, require=["zcta", "draft_score"])
     d = scored.dropna(subset=["draft_score"]).copy()
     d = d[d["POP100"] > 0].reset_index(drop=True)
-    d["burden"] = d["draft_score"] * d["POP100"]
     print(f"n = {len(d)}  population = {int(d['POP100'].sum()):,}")
 
-    print("\n=== 1. how concentrated is the risk? ===")
-    x, y, idx = concentration(d, "draft_score", "POP100")
-    for q in (0.05, 0.10, 0.25, 0.50):
-        print(f"  worst {q:.0%} of population bears {np.interp(q, x, y):.1%} of total risk")
-    print(f"  concentration index: {idx:+.3f}   (0 = spread perfectly evenly)")
+    print("\n=== 1. how many people live in each declared priority category? ===")
+    population = priority_population(d)
+    print(population.to_string(index=False))
 
-    print("\n=== 2. intensity vs burden ===")
-    a = set(d.nlargest(10, "burden")["zcta"])
-    b = set(d.nlargest(10, "draft_score")["zcta"])
-    print(f"  top-10 overlap: {len(a & b)}/10")
-    print("  by burden:", ", ".join(d.nlargest(10, "burden")["place_name"]))
-    print("  by score :", ", ".join(d.nlargest(10, "draft_score")["place_name"]))
-
-    print("\n=== 3. per-place vs per-person ===")
+    print("\n=== 2. per-place vs per-person ===")
     cmp = per_place_vs_per_person(d, [*pcts, "draft_score", "dist_m"])
     print(cmp.round(1).to_string(index=False))
     print("\n  (component percentiles are population-weighted by construction, so a")
@@ -200,8 +194,9 @@ if __name__ == "__main__":
         print("  enough to break equal-count binning, so the bivariate map bins heat")
         print("  on its ordinal 0-4 source scale instead.")
 
-    write_processed(
-        d[["zcta", "place_name", "POP100", "draft_score", "burden"]], "equity_burden", config
+    write_processed(population, "equity_priority_population", config)
+    figures.save(
+        figure_priority_population(population),
+        "equity_priority_population",
     )
-    figures.save(figure_concentration(d, x, y, idx), "equity_concentration")
     figures.save(figure_bivariate(scored.to_crs(CRS_M)), "equity_bivariate")

@@ -36,7 +36,17 @@ if __name__ == "__main__":
         "zcta_bounds", config, geo=True, require=["zcta", "POP100"]
     )
     heat_scores = read_processed(
-        "heat_scores", config, require=["zip", "forecast_date", "heat_risk"]
+        "heat_scores",
+        config,
+        require=[
+            "zip",
+            "forecast_date",
+            "heat_risk",
+            "heat_days_ge_3",
+            "heat_score_days",
+            "calheatscore_method_version",
+            *[f"heat_day_{i}" for i in range(7)],
+        ],
     )
 
     zcta_heat_scores = attach_heat_scores(la_zctas, heat_scores)

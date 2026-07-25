@@ -13,6 +13,8 @@ Three layers, each stage naming the artifact it produces:
       mua             -> mua_areas         (HRSA medically-underserved area polygons)
       calenviroscreen -> ces_tracts        (environmental burden, tract grain)
       boundaries      -> zcta_bounds
+      county_heat_outcomes -> county_heat_tracts (historical excess-ER validation)
+      shade           -> shade_block_groups (modeled 2023 3 p.m. shade)
 
     conform/   bring each native grain onto the ZCTA grain.
       zip_to_zcta    -> zcta_heat_scores        needs zcta_bounds, heat_scores
@@ -40,6 +42,8 @@ STEPS = [
     ("places", "ccphit.sources.places"),
     ("mua", "ccphit.sources.mua"),
     ("calenviroscreen", "ccphit.sources.calenviroscreen"),
+    ("county_heat_outcomes", "ccphit.sources.county_heat_outcomes"),
+    ("shade", "ccphit.sources.shade"),
     ("place_boundaries", "ccphit.sources.place_boundaries"),
     ("boundaries", "ccphit.sources.boundaries"),
     ("zip_to_zcta", "ccphit.conform.zip_to_zcta"),

@@ -7,6 +7,9 @@ sources:
         url: "https://services.arcgis.com/RmCCgQtiZLDCtblq/ArcGIS/rest/services/Cooling_Centers_-_Los_Angeles_County_Regional_(Official_-_Updated_July_2022)_(View)/FeatureServer/0/query"
     calheatscore:
         url: "https://services1.arcgis.com/PCHfdHz4GlDNAhBb/arcgis/rest/services/CalHeatScore_Live_Data_for_API_Use/FeatureServer/0/query"
+        # The service exposes no version field. Attach this declared version to every
+        # archive and update it deliberately when CalEPA revises the method.
+        method_version: "2.0"
     zcta:
         url: "https://services2.arcgis.com/FiaPA4ga0iQKduv3/arcgis/rest/services/Census_ZIP_Code_Tabulation_Areas_2010_v1/FeatureServer/0/query"
     
@@ -34,6 +37,15 @@ sources:
             diesel: "diesel_pm"
             ozone: "ozone"
             RSEIhaz: "tox_release"
+    county_heat_outcomes:
+        # LA County Climate-Ready Communities Assessment 2023. Its continuous
+        # heat_tract field is based on excess emergency-room visits. Validation
+        # source only: never included in the score it is used to evaluate.
+        url: "https://services.arcgis.com/RmCCgQtiZLDCtblq/arcgis/rest/services/Los_Angeles_County_CVA_Extreme_Heat_2023/FeatureServer/13/query"
+    shade:
+        # UCLA + LA County Chief Sustainability Office modeled 2023 summer-day
+        # shade at Census block-group grain. Experimental intervention layer.
+        url: "https://services.arcgis.com/RmCCgQtiZLDCtblq/arcgis/rest/services/PercentTotalShade_CSA/FeatureServer/4/query"
     mua:
         # HRSA Medically Underserved Areas. Used instead of HPSA, which has only ~2
         # usable area designations in LA County once withdrawn and population-group
@@ -51,6 +63,9 @@ sources:
             copd_crudeprev: "copd"
             diabetes_crudeprev: "diabetes"
             phlth_crudeprev: "poor_phys_health"
+            chd_crudeprev: "chd"
+            obesity_crudeprev: "obesity"
+            mhlth_crudeprev: "poor_mental_health"
 crosswalk:
     # Tract-grain sources to interpolate onto ZCTAs, population-weighted (D5/D8).
     # Every listed column must be *intensive* — a rate, index, or concentration — since
@@ -95,7 +110,10 @@ score:
             columns: [svi]
             weight: 0.25
         chronic:
-            columns: [asthma, copd, diabetes, poor_phys_health]
+            # CDC Heat & Health Index-aligned condition set. A local sensitivity
+            # experiment found slightly better historical-harm agreement and slightly
+            # less SVI overlap than the former four-condition construction.
+            columns: [chd, obesity, diabetes, copd, asthma, poor_mental_health]
             weight: 0.25
         resource_gap:
             columns: [dist_m]
