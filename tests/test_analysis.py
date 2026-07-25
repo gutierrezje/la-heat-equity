@@ -10,47 +10,51 @@ import pandas as pd
 import pytest
 
 from ccphit.analysis.equity import (
-    concentration,
+    classify_priority_cells,
     heat_terciles_are_impossible,
     per_place_vs_per_person,
+    priority_population,
 )
 from ccphit.analysis.structure import name_clusters, variance_inflation
 
 PCTS = ["heat_pct", "svi_pct", "chronic_pct", "resource_gap_pct"]
 
 
-# --- concentration -------------------------------------------------------------------
+# --- transparent population categories -----------------------------------------------
 
 
-def test_evenly_spread_risk_has_a_concentration_index_of_zero():
-    d = pd.DataFrame({"draft_score": [50.0] * 4, "POP100": [100] * 4})
-    _, _, idx = concentration(d, "draft_score", "POP100")
-    assert idx == pytest.approx(0.0, abs=1e-9)
-
-
-def test_risk_borne_by_a_tiny_group_gives_a_high_concentration_index():
-    # one small ZCTA carries all the risk
-    d = pd.DataFrame({"draft_score": [100.0, 0.0, 0.0, 0.0], "POP100": [1, 100, 100, 100]})
-    _, _, idx = concentration(d, "draft_score", "POP100")
-    assert idx > 0.9
-
-
-def test_concentration_curve_starts_at_origin_and_ends_at_one():
-    d = pd.DataFrame({"draft_score": [80.0, 40.0, 10.0], "POP100": [10, 20, 30]})
-    x, y, _ = concentration(d, "draft_score", "POP100")
-    assert (x[0], y[0]) == (0.0, 0.0)
-    assert x[-1] == pytest.approx(1.0)
-    assert y[-1] == pytest.approx(1.0)
-
-
-def test_concentration_curve_is_monotonically_increasing():
-    rng = np.random.default_rng(3)
-    d = pd.DataFrame(
-        {"draft_score": rng.uniform(0, 100, 40), "POP100": rng.integers(100, 9000, 40)}
+def priority_fixture():
+    return pd.DataFrame(
+        {
+            "zcta": [f"Z{i}" for i in range(6)],
+            "heat_risk": [2, 3, 4, 2, 3, 4],
+            "svi_pct": [10, 20, 30, 70, 80, 90],
+            "POP100": [10, 20, 30, 40, 50, 60],
+            "draft_score": [99, 1, 50, 80, 40, 20],
+        }
     )
-    x, y, _ = concentration(d, "draft_score", "POP100")
-    assert (np.diff(x) >= 0).all()
-    assert (np.diff(y) >= -1e-12).all()
+
+
+def test_priority_cells_assign_every_area_once():
+    cells = classify_priority_cells(priority_fixture())
+    assert len(cells) == 6
+    assert cells[["heat_band", "svi_band"]].notna().all().all()
+
+
+def test_priority_population_accounts_for_every_resident_once():
+    source = priority_fixture()
+    summary = priority_population(source)
+    assert summary["population"].sum() == source["POP100"].sum()
+    assert summary["zctas"].sum() == len(source)
+    assert summary["population_share"].sum() == pytest.approx(1.0)
+
+
+def test_priority_population_does_not_depend_on_composite_score():
+    source = priority_fixture()
+    original = priority_population(source)
+    source["draft_score"] = source["draft_score"].iloc[::-1].to_numpy()
+    changed = priority_population(source)
+    pd.testing.assert_frame_equal(original, changed)
 
 
 # --- per place vs per person ---------------------------------------------------------
