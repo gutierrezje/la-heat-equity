@@ -15,6 +15,20 @@ sources:
     svi:
         gdb: "SVI2022_CALIFORNIA_tract.gdb"
         layer: "SVI2022_CALIFORNIA_tract"
+    calenviroscreen:
+        # CalEnviroScreen 4.0, OEHHA/CalEPA — same ArcGIS org as CalHeatScore.
+        # Pollution Burden only: the combined CES score also bundles asthma, CVD,
+        # poverty, education and housing burden, which PLACES and SVI already supply.
+        # Carrying CIscoreP instead would double-count them (see D15).
+        url: "https://services1.arcgis.com/PCHfdHz4GlDNAhBb/arcgis/rest/services/CalEnviroScreen_4_0_Results_/FeatureServer/0/query"
+        tract_prefix: "6037" # leading zero is absent in the source's tract field
+        pop_field: "ACS2019TotalPop"
+        measures: # source field -> output column
+            PollutionP: "pollution_pct"
+            pm: "pm25"
+            diesel: "diesel_pm"
+            ozone: "ozone"
+            RSEIhaz: "tox_release"
     mua:
         # HRSA Medically Underserved Areas. Used instead of HPSA, which has only ~2
         # usable area designations in LA County once withdrawn and population-group
@@ -32,6 +46,23 @@ sources:
             copd_crudeprev: "copd"
             diabetes_crudeprev: "diabetes"
             phlth_crudeprev: "poor_phys_health"
+crosswalk:
+    # Tract-grain sources to interpolate onto ZCTAs, population-weighted (D5/D8).
+    # Every listed column must be *intensive* — a rate, index, or concentration — since
+    # they are averaged, never summed. Adding a tract source is a config edit.
+    svi_tracts:
+        output: "zcta_svi"
+        columns:
+            [
+                svi,
+                svi_socioeconomic,
+                svi_household,
+                svi_minority,
+                svi_housing_transport,
+            ]
+    ces_tracts:
+        output: "zcta_ces"
+        columns: [pollution_pct, pm25, diesel_pm, ozone, tox_release]
 paths:
     processed: "data/processed"
     raw: "data/raw"
