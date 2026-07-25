@@ -159,3 +159,21 @@ automatic weighting rule.
 category, publish heat/SVI/chronic components, and keep any scalar response
 index secondary. Remove facility distance from its formula in a focused
 Dashboard-migration PR.
+
+## D30 — Publish one polygon layer with two policy views
+
+**Decision:** the StoryMap and Dashboard will use one consolidated ZCTA layer
+with precomputed current-response and long-term-investment categories, plus a
+separate cooling-center point layer.
+
+**Why:** this keeps filters, population indicators, popups, and maps consistent
+without duplicating statistical rules inside ArcGIS widgets. The current view
+uses extreme forecast heat plus upper-third vulnerability. The investment view
+uses upper-third historical harm, upper-third vulnerability, and lower-third
+vegetation shade. Both are simple place-based classifications that policy
+students can explain and statistics majors can reproduce.
+
+The scalar `response_index` excludes cooling-center distance and is secondary.
+The old `draft_score`, `resource_gap_pct`, and `dist_m` remain temporarily so
+existing widgets can be migrated without breaking the hosted item. Cooling
+centers remain a point/list service with address and hours, not a score pillar.
