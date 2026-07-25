@@ -4,7 +4,7 @@ import pandas as pd
 import requests
 
 from ccphit.config import load_config
-from ccphit.io import write_processed
+from ccphit.io import write_history, write_processed
 
 def fetch_heat_scores(config: dict) -> pd.DataFrame:
     url = config["sources"]["calheatscore"]["url"]
@@ -30,13 +30,18 @@ def fetch_heat_scores(config: dict) -> pd.DataFrame:
     df["CHS_Day_6"] = df["CHS_Day_6"].astype(int)
     df = df.rename(columns={
         "ZIP_CODE": "zip",
-        "DATE": "date",
+        "DATE": "forecast_date",
     })
     df["heat_risk"] = df.filter(like="CHS_Day_").max(axis=1)
     df["zip"] = df["zip"].astype(str).str.zfill(5)
-    return df[["zip", "date", "heat_risk"]]
+    return df[["zip", "forecast_date", "heat_risk"]]
 
 if __name__ == "__main__":
     config = load_config()
     heat_scores = fetch_heat_scores(config)
     write_processed(heat_scores, "heat_scores", config)
+
+    # The only non-reproducible input in the pipeline — archive it before the next
+    # run overwrites it, so past scores stay reconstructable (and a real trend
+    # indicator becomes possible once several dates accumulate).
+    write_history(heat_scores, "heat_scores", config, stamp=heat_scores["forecast_date"].max())
