@@ -4,6 +4,10 @@ The final product is one StoryMap, one Dashboard, and two hosted layers. The
 Dashboard and StoryMap should read fields from the layers; they should not
 reimplement classification logic.
 
+For the actual authoring session, use
+[`ARCGIS_BUILD_SESSION.md`](ARCGIS_BUILD_SESSION.md) and paste the narrative
+from [`STORYMAP_COPY.md`](STORYMAP_COPY.md).
+
 ## Hosted layers
 
 1. **ZCTA heat-equity layer** — `data/processed/zcta_scores.geojson`
