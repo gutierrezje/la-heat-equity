@@ -5,6 +5,7 @@ layer — they are deliberately independent of the module names that produce the
 """
 
 from collections.abc import Iterable
+from datetime import date
 from pathlib import Path
 
 import geopandas as gpd
@@ -41,6 +42,15 @@ def read_processed(
             f"run: uv run python -m ccphit.run"
         )
     return df
+
+
+def pull_stamp() -> str:
+    """Today's date, for live sources that carry no date of their own.
+
+    CalHeatScore stamps its own forecast date; the ArcGIS feature services do not,
+    so the best available provenance is when we pulled them.
+    """
+    return date.today().isoformat()
 
 
 def write_history(

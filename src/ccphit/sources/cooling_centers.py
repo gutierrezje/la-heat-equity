@@ -1,10 +1,16 @@
-"""LA County cooling centers — point locations, July 2022 snapshot (not live)."""
+"""LA County cooling centers — point locations from a live ArcGIS view service.
+
+Despite "Updated July 2022" in the layer name, the service is **not** frozen: the
+site list churned from 178 to 152 between the 2026-06-22 and 2026-07-24 pulls,
+moving `dist_m` on 118 of 294 ZCTAs. Each pull is archived because the county
+publishes no history, so a past pull is otherwise unrecoverable (see D12).
+"""
 
 import geopandas as gpd
 import requests
 
 from ccphit.config import clip_to_aoi, load_config
-from ccphit.io import write_geojson, write_processed
+from ccphit.io import pull_stamp, write_geojson, write_history, write_processed
 
 def fetch_cooling_centers(config: dict) -> gpd.GeoDataFrame:
     url = config["sources"]["cooling"]["url"]
@@ -37,3 +43,4 @@ if __name__ == "__main__":
     cooling_centers = fetch_cooling_centers(config)
     write_processed(cooling_centers, "cooling_centers", config)
     write_geojson(cooling_centers, "cooling_centers", config)
+    write_history(cooling_centers, "cooling_centers", config, stamp=pull_stamp())

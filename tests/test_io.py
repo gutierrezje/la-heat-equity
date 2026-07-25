@@ -1,5 +1,8 @@
 """Artifact reading/writing contracts."""
 
+import datetime as dt
+from pathlib import Path
+
 import geopandas as gpd
 import pandas as pd
 import pytest
@@ -7,6 +10,7 @@ from shapely.geometry import Point
 
 from ccphit.io import (
     StaleArtifactError,
+    pull_stamp,
     read_processed,
     write_geojson,
     write_history,
@@ -87,15 +91,21 @@ def test_required_columns_present_reads_normally(config):
 def test_history_is_stamped_by_the_date_the_data_describes(config, scored):
     write_history(scored, "heat_scores", config, stamp="2026-07-24")
 
-    from pathlib import Path
-
     archived = list(Path(config["paths"]["history"]).glob("*.parquet"))
     assert [p.name for p in archived] == ["heat_scores_2026-07-24.parquet"]
 
 
-def test_rerunning_the_same_forecast_does_not_accumulate_duplicates(config, scored):
-    from pathlib import Path
+def test_pull_stamp_is_an_iso_date(config, scored):
+    """Live services carrying no date of their own are stamped with the pull date."""
+    stamp = pull_stamp()
+    assert stamp == dt.date.today().isoformat()
 
+    write_history(scored, "cooling_centers", config, stamp=stamp)
+    archived = Path(config["paths"]["history"]) / f"cooling_centers_{stamp}.parquet"
+    assert archived.exists()
+
+
+def test_rerunning_the_same_forecast_does_not_accumulate_duplicates(config, scored):
     write_history(scored, "heat_scores", config, stamp="2026-07-24")
     write_history(scored, "heat_scores", config, stamp="2026-07-24")
     write_history(scored, "heat_scores", config, stamp="2026-07-25")
