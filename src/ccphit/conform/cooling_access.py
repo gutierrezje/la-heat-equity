@@ -1,9 +1,16 @@
+"""Point grain -> ZCTA grain: distance from each ZCTA to its nearest cooling center.
+
+Measured from the ZCTA's population-weighted centroid rather than the polygon, so
+the result reads as "typical resident -> nearest center" and stays rankable (D6, D8).
+Feeds the score's resource_gap component.
+"""
+
 import geopandas as gpd
 import pandas as pd
-from pathlib import Path
 from shapely.geometry import Point
 
-from ccphit.common import CRS_M, load_config, write_processed
+from ccphit.config import CRS_M, load_config
+from ccphit.io import read_processed, write_processed
 
 
 def zcta_pop_centroids(tracts: gpd.GeoDataFrame, zctas: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -74,11 +81,9 @@ def nearest_cooling_center(
 
 if __name__ == "__main__":
     config = load_config()
-    processed_path = Path(config["paths"]["processed"])
-
-    zctas = gpd.read_parquet(processed_path / "zcta_bounds.parquet")
-    cooling = gpd.read_parquet(processed_path / "cooling_centers.parquet")
-    tracts = gpd.read_parquet(processed_path / "svi_tracts.parquet")
+    zctas = read_processed("zcta_bounds", config, geo=True)
+    cooling = read_processed("cooling_centers", config, geo=True)
+    tracts = read_processed("svi_tracts", config, geo=True)
 
     nearest = nearest_cooling_center(zctas, cooling, tracts)
     write_processed(nearest, "zcta_nearest_cooling", config)

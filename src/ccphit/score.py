@@ -1,17 +1,21 @@
-from pathlib import Path
+"""The mart: join every conformed source onto the ZCTA spine and score it.
+
+Terminal stage of the pipeline. `zcta_scores.geojson` is what gets published to
+ArcGIS and backs both the Dashboard and the StoryMap.
+"""
 
 import geopandas as gpd
 import pandas as pd
 
-from ccphit.common import load_config, pop_weighted_pct, write_processed
+from ccphit.config import load_config
+from ccphit.io import read_processed, write_geojson, write_processed
+from ccphit.weighting import pop_weighted_pct
 
 
 def assemble_spine(config: dict) -> gpd.GeoDataFrame:
-    processed = Path(config["paths"]["processed"])
-
-    spine = gpd.read_parquet(processed / "zcta_heat_scores.parquet")
-    zcta_svi = pd.read_parquet(processed / "zcta_svi.parquet")
-    zcta_nearest = pd.read_parquet(processed / "zcta_nearest_cooling.parquet")
+    spine = read_processed("zcta_heat_scores", config, geo=True)
+    zcta_svi = read_processed("zcta_svi", config)
+    zcta_nearest = read_processed("zcta_nearest_cooling", config)
 
     n = len(spine)
 
@@ -77,7 +81,6 @@ if __name__ == "__main__":
 
     write_processed(scored, "zcta_scores", config)
 
-    geojson_path = Path(config["paths"]["processed"]) / "zcta_scores.geojson"
     export_cols = [
         "zcta",
         "heat_risk",
@@ -90,8 +93,7 @@ if __name__ == "__main__":
         "draft_score",
         "geometry",
     ]
-    scored[export_cols].to_file(geojson_path, driver="GeoJSON")
-    print(f"geojson -> {geojson_path}")
+    write_geojson(scored, "zcta_scores", config, columns=export_cols)
 
     print(scored["draft_score"].describe())
     top = scored.sort_values("draft_score", ascending=False)[

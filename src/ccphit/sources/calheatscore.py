@@ -1,7 +1,10 @@
-import requests
-import pandas as pd
+"""CalHeatScore — daily per-ZIP 7-day heat-health risk forecast. Tabular, no geometry."""
 
-from ccphit.common import load_config, write_processed
+import pandas as pd
+import requests
+
+from ccphit.config import load_config
+from ccphit.io import write_processed
 
 def fetch_heat_scores(config: dict) -> pd.DataFrame:
     url = config["sources"]["calheatscore"]["url"]

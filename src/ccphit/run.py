@@ -1,16 +1,23 @@
 """Pipeline orchestrator — runs every stage in dependency order.
 
-    uv run python -m ccphit.run                # full pipeline
-    uv run python -m ccphit.run --from zcta     # resume from a stage onward
+    uv run python -m ccphit.run                      # full pipeline
+    uv run python -m ccphit.run --from tract_to_zcta  # resume from a stage onward
 
-Dependency notes (what each stage produces / needs):
-    cooling       -> cooling_centers                      (independent)
-    calheatscore  -> heat_scores                          (independent)
-    svi           -> svi_tracts                           (independent)
-    zcta          -> zcta_bounds, zcta_heat_scores        needs heat_scores
-    crosswalk     -> zcta_svi                             needs svi_tracts, zcta_bounds
-    nearest       -> zcta_nearest_cooling                 needs zcta_bounds, cooling_centers, svi_tracts
-    score         -> zcta_scores (+ geojson)              needs zcta_heat_scores, zcta_svi, zcta_nearest_cooling
+Three layers, each stage naming the artifact it produces:
+
+    sources/   fetch one external dataset, normalize, write. No cross-dependencies.
+      cooling_centers -> cooling_centers
+      calheatscore    -> heat_scores
+      svi             -> svi_tracts
+      boundaries      -> zcta_bounds
+
+    conform/   bring each native grain onto the ZCTA grain.
+      zip_to_zcta    -> zcta_heat_scores        needs zcta_bounds, heat_scores
+      tract_to_zcta  -> zcta_svi                needs zcta_bounds, svi_tracts
+      cooling_access -> zcta_nearest_cooling    needs zcta_bounds, cooling_centers, svi_tracts
+
+    score      the mart: join the spine, compute the composite.
+      score -> zcta_scores (+ geojson)  needs zcta_heat_scores, zcta_svi, zcta_nearest_cooling
 """
 
 import subprocess
@@ -18,13 +25,14 @@ import sys
 import time
 
 STEPS = [
-    ("cooling", "ccphit.sources.cooling"),
+    ("cooling_centers", "ccphit.sources.cooling_centers"),
     ("calheatscore", "ccphit.sources.calheatscore"),
     ("svi", "ccphit.sources.svi"),
-    ("zcta", "ccphit.sources.zcta"),
-    ("crosswalk", "ccphit.transform.crosswalk"),
-    ("nearest", "ccphit.transform.nearest"),
-    ("score", "ccphit.transform.score"),
+    ("boundaries", "ccphit.sources.boundaries"),
+    ("zip_to_zcta", "ccphit.conform.zip_to_zcta"),
+    ("tract_to_zcta", "ccphit.conform.tract_to_zcta"),
+    ("cooling_access", "ccphit.conform.cooling_access"),
+    ("score", "ccphit.score"),
 ]
 
 

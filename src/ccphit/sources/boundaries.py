@@ -1,8 +1,15 @@
-import requests
-import pandas as pd
-import geopandas as gpd
+"""LA County and ZCTA boundary polygons — the spatial spine every source lands on.
 
-from ccphit.common import load_config, write_processed
+Scope is defined by the county polygon, not the config bbox: the bbox is only a
+coarse server-side pre-filter (see D2).
+"""
+
+import geopandas as gpd
+import requests
+
+from ccphit.config import load_config
+from ccphit.io import write_processed
+
 
 def fetch_county_boundary(config: dict) -> gpd.GeoDataFrame:
     url = config["sources"]["county_boundary"]["url"]
@@ -19,6 +26,7 @@ def fetch_county_boundary(config: dict) -> gpd.GeoDataFrame:
     if "error" in data:
         raise Exception(data["error"]["message"])
     return gpd.GeoDataFrame.from_features(data["features"], crs="EPSG:4326")
+
 
 def fetch_zcta(config: dict, bbox: list) -> gpd.GeoDataFrame:
     url = config["sources"]["zcta"]["url"]
@@ -51,22 +59,8 @@ def fetch_zcta(config: dict, bbox: list) -> gpd.GeoDataFrame:
     gdf = gdf[["ZCTA5", "geometry", "POP100"]]
     return gdf.rename(columns={"ZCTA5": "zcta"})
 
-def attach_heat_scores(la_zctas: gpd.GeoDataFrame, heat_scores: pd.DataFrame) -> gpd.GeoDataFrame:
-    la_zctas = la_zctas.copy()
-    heat_scores = heat_scores.copy()
 
-    merged = la_zctas.merge(heat_scores, left_on="zcta", right_on="zip", how="left", validate="1:1")
-    merged = merged.drop(columns=["zip"])
-
-    matched = merged["heat_risk"].notna().sum()
-    print(f"heat match: {matched}/{len(merged)} ZCTAs")
-    unmatched = merged.loc[merged["heat_risk"].isna(), "zcta"].tolist()
-    print(f"unmatched ZCTAs ({len(unmatched)}):", unmatched)
-    
-    return merged
-
-if __name__ == "__main__":
-    config = load_config()
+def la_county_zctas(config: dict) -> gpd.GeoDataFrame:
     county_boundary = fetch_county_boundary(config)
     county_geometry = county_boundary.geometry.union_all()
     minx, miny, maxx, maxy = county_geometry.bounds
@@ -74,9 +68,9 @@ if __name__ == "__main__":
     bbox = [minx - pad, miny - pad, maxx + pad, maxy + pad]
 
     zcta = fetch_zcta(config, bbox)
-    la_zctas = zcta[zcta.representative_point().within(county_geometry)].copy()
-    write_processed(la_zctas, "zcta_bounds", config)
+    return zcta[zcta.representative_point().within(county_geometry)].copy()
 
-    heat_scores = pd.read_parquet("data/processed/heat_scores.parquet")
-    zcta_heat_scores = attach_heat_scores(la_zctas, heat_scores)
-    write_processed(zcta_heat_scores, "zcta_heat_scores", config)
+
+if __name__ == "__main__":
+    config = load_config()
+    write_processed(la_county_zctas(config), "zcta_bounds", config)

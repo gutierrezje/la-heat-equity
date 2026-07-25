@@ -1,9 +1,10 @@
-# fetch cooling centers from ArcGIS
+"""LA County cooling centers — point locations, July 2022 snapshot (not live)."""
 
-import requests
 import geopandas as gpd
+import requests
 
-from ccphit.common import clip_to_aoi, load_config, write_geojson, write_processed
+from ccphit.config import clip_to_aoi, load_config
+from ccphit.io import write_geojson, write_processed
 
 def fetch_cooling_centers(config: dict) -> gpd.GeoDataFrame:
     url = config["sources"]["cooling"]["url"]
