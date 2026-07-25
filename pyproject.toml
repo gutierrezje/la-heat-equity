@@ -29,6 +29,7 @@ dev = [
     "ipywidgets>=8.1.8",
     "jupyterlab>=4.5.9",
     "mapclassify>=2.10.0",
+    "pytest>=9.1.1",
     "ruff>=0.15.17",
 ]
 

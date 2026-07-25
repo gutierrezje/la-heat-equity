@@ -83,6 +83,7 @@ if __name__ == "__main__":
 
     export_cols = [
         "zcta",
+        "forecast_date",  # so the published layer states which forecast it reflects
         "heat_risk",
         "svi",
         "dist_m",

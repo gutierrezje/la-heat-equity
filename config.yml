@@ -18,6 +18,9 @@ sources:
 paths:
     processed: "data/processed"
     raw: "data/raw"
+    # Dated archive of snapshots that cannot be re-fetched (CalHeatScore serves
+    # only the current 7-day window, so an overwritten pull is gone for good).
+    history: "data/history"
 score:
     weights:
         heat: 0.34

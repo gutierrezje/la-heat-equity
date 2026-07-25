@@ -4,6 +4,8 @@ Artifact names are the contract between pipeline stages and the published ArcGIS
 layer — they are deliberately independent of the module names that produce them.
 """
 
+from pathlib import Path
+
 import geopandas as gpd
 import pandas as pd
 
@@ -13,6 +15,20 @@ from ccphit.config import processed_dir
 def read_processed(name: str, config: dict, geo: bool = False) -> pd.DataFrame:
     path = processed_dir(config) / f"{name}.parquet"
     return gpd.read_parquet(path) if geo else pd.read_parquet(path)
+
+
+def write_history(
+    df: gpd.GeoDataFrame | pd.DataFrame, name: str, config: dict, stamp: str
+) -> None:
+    """Archive a dated copy of a snapshot that cannot be re-fetched later.
+
+    Stamped with the date the data describes, not the wall clock, so re-running on
+    the same forecast is idempotent rather than accumulating duplicates.
+    """
+    path = Path(config["paths"]["history"]) / f"{name}_{stamp}.parquet"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(path)
+    print(f"{name}: archived {stamp} -> {path}")
 
 
 def write_processed(df: gpd.GeoDataFrame | pd.DataFrame, name: str, config: dict) -> None:

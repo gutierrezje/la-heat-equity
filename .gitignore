@@ -4,3 +4,7 @@ data/
 __pycache__/
 .env
 *.pyc
+
+.DS_Store
+.ruff_cache/
+.pytest_cache/
