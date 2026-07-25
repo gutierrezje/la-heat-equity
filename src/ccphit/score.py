@@ -19,37 +19,35 @@ def assemble_spine(config: dict) -> gpd.GeoDataFrame:
         geo=True,
         require=["zcta", "POP100", "forecast_date", "heat_risk"],
     )
-    zcta_svi = read_processed("zcta_svi", config, require=["zcta", "svi"])
-    zcta_nearest = read_processed(
-        "zcta_nearest_cooling", config, require=["zcta", "dist_m"]
-    )
+    svi_cols = [
+        "svi",
+        "svi_socioeconomic",
+        "svi_household",
+        "svi_minority",
+        "svi_housing_transport",
+    ]
+    places_cols = list(config["sources"]["places"]["measures"].values())
+
+    joins = [
+        ("zcta_svi", svi_cols, False),
+        ("zcta_nearest_cooling", ["dist_m"], False),
+        ("places_zcta", places_cols, False),
+    ]
 
     n = len(spine)
-
-    spine = spine.merge(
-        zcta_svi[["zcta", "svi"]],
-        on="zcta",
-        how="left",
-        validate="1:1",
-    )
-    spine = spine.merge(
-        zcta_nearest[["zcta", "dist_m"]],
-        on="zcta",
-        how="left",
-        validate="1:1",
-    )
+    for name, cols, geo in joins:
+        other = read_processed(name, config, geo=geo, require=["zcta", *cols])
+        spine = spine.merge(
+            other[["zcta", *cols]], on="zcta", how="left", validate="1:1"
+        )
 
     assert len(spine) == n, f"row count changed: {n} -> {len(spine)}"
 
-    nulls = spine[["heat_risk", "svi", "dist_m"]].isna().sum().to_dict()
-    print("nulls:", nulls)
-
-    if nulls["heat_risk"]:
-        print("missing heat:", spine.loc[spine["heat_risk"].isna(), "zcta"].tolist())
-    if nulls["svi"]:
-        print("missing svi:", spine.loc[spine["svi"].isna(), "zcta"].tolist())
-    if nulls["dist_m"]:
-        print("missing dist:", spine.loc[spine["dist_m"].isna(), "zcta"].tolist())
+    tracked = ["heat_risk", *svi_cols, "dist_m", *places_cols]
+    nulls = {c: int(spine[c].isna().sum()) for c in tracked if spine[c].isna().any()}
+    print("nulls:", nulls if nulls else "none")
+    for col in nulls:
+        print(f"  missing {col}:", spine.loc[spine[col].isna(), "zcta"].tolist())
 
     return spine
 
@@ -61,21 +59,34 @@ def warn_if_flat(series: pd.Series, name: str) -> None:
 
 
 def score_zctas(spine: gpd.GeoDataFrame, config: dict) -> gpd.GeoDataFrame:
-    weights = config["score"]["weights"]
+    """Percentile-rank each component's columns, average within component, weight across.
+
+    Entirely driven by `config.yml`'s `score.components`: adding or reweighting a
+    pillar is a config edit, not a code change.
+    """
+    components = config["score"]["components"]
+
+    total = sum(c["weight"] for c in components.values())
+    if abs(total - 1.0) > 1e-9:
+        raise ValueError(f"score.components weights must sum to 1, got {total}")
+
     pop = spine["POP100"]
-
-    for col in ["heat_risk", "svi", "dist_m"]:
-        warn_if_flat(spine[col], col)
-
     spine = spine.copy()
-    spine["heat_pct"] = pop_weighted_pct(spine["heat_risk"], pop)
-    spine["svi_pct"] = pop_weighted_pct(spine["svi"], pop)
-    spine["dist_pct"] = pop_weighted_pct(spine["dist_m"], pop)
 
-    spine["draft_score"] = (
-        weights["heat"] * spine["heat_pct"]
-        + weights["svi"] * spine["svi_pct"]
-        + weights["resource_gap"] * spine["dist_pct"]
+    for name, spec in components.items():
+        cols = spec["columns"]
+        for col in cols:
+            warn_if_flat(spine[col], col)
+
+        # Rank each column, then take the unweighted mean of those percentiles.
+        # A single-column component reduces to its own percentile.
+        ranked = pd.DataFrame(
+            {col: pop_weighted_pct(spine[col], pop) for col in cols}
+        )
+        spine[f"{name}_pct"] = ranked.mean(axis=1)
+
+    spine["draft_score"] = sum(
+        spec["weight"] * spine[f"{name}_pct"] for name, spec in components.items()
     )
 
     return spine
@@ -88,16 +99,24 @@ if __name__ == "__main__":
 
     write_processed(scored, "zcta_scores", config)
 
+    component_pcts = [f"{name}_pct" for name in config["score"]["components"]]
+    places_cols = list(config["sources"]["places"]["measures"].values())
     export_cols = [
         "zcta",
         "forecast_date",  # so the published layer states which forecast it reflects
+        "POP100",
+        # raw inputs, for popups
         "heat_risk",
         "svi",
         "dist_m",
-        "POP100",
-        "heat_pct",
-        "svi_pct",
-        "dist_pct",
+        *places_cols,
+        # SVI sub-themes, for the dashboard's domain breakdown chart
+        "svi_socioeconomic",
+        "svi_household",
+        "svi_minority",
+        "svi_housing_transport",
+        # component percentiles + composite
+        *component_pcts,
         "draft_score",
         "geometry",
     ]
@@ -105,6 +124,6 @@ if __name__ == "__main__":
 
     print(scored["draft_score"].describe())
     top = scored.sort_values("draft_score", ascending=False)[
-        ["zcta", "POP100", "draft_score", "svi_pct", "dist_pct"]
+        ["zcta", "POP100", "draft_score", *component_pcts]
     ].head(10)
     print(top)

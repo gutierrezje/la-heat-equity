@@ -17,14 +17,31 @@ def fetch_svi_tracts(config: dict) -> pd.DataFrame:
     # LA county only
     gdf = gdf[gdf["FIPS"].astype(str).str.startswith(config["aoi"]["county_fips"])]
 
-    # Drop missing sentinel
+    # Drop missing sentinel. Verified that no tract has a valid RPL_THEMES alongside a
+    # -999 sub-theme, so this one filter covers the theme columns too.
     gdf = gdf[gdf["RPL_THEMES"] != -999]
 
-    # Keep + rename
-    gdf = gdf[["FIPS", "RPL_THEMES", "E_TOTPOP", "geometry"]].rename(
+    # Keep + rename. The four sub-themes drive the dashboard's SVI-domain breakdown;
+    # names follow CDC's documented theme definitions.
+    gdf = gdf[
+        [
+            "FIPS",
+            "RPL_THEMES",
+            "RPL_THEME1",
+            "RPL_THEME2",
+            "RPL_THEME3",
+            "RPL_THEME4",
+            "E_TOTPOP",
+            "geometry",
+        ]
+    ].rename(
         columns={
             "FIPS": "tract_geoid",
             "RPL_THEMES": "svi",
+            "RPL_THEME1": "svi_socioeconomic",
+            "RPL_THEME2": "svi_household",
+            "RPL_THEME3": "svi_minority",
+            "RPL_THEME4": "svi_housing_transport",
             "E_TOTPOP": "pop",
         }
     )

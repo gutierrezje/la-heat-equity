@@ -38,7 +38,7 @@ def test_interpolation_weights_by_population_not_area():
         {"zcta": ["90000"], "geometry": [cell(0, width=2)]}, crs="EPSG:4326"
     )
 
-    result = interpolate_to_zcta(tracts, zctas)
+    result = interpolate_to_zcta(tracts, zctas, value_cols=["svi"])
 
     assert len(result) == 1
     # population-weighted: (1.0*100 + 0.0*1) / 101
@@ -63,7 +63,7 @@ def test_partial_overlap_contributes_proportional_population():
         {"zcta": ["90000"], "geometry": [cell(0, width=2)]}, crs="EPSG:4326"
     )
 
-    svi = interpolate_to_zcta(tracts, zctas)["svi"].iloc[0]
+    svi = interpolate_to_zcta(tracts, zctas, value_cols=["svi"])["svi"].iloc[0]
 
     # weights: A = 100, B = 100 * 0.5 -> (1.0*100 + 0.0*50) / 150
     assert svi == pytest.approx(100 / 150, abs=1e-3)
@@ -87,10 +87,36 @@ def test_zcta_with_no_overlapping_tract_is_left_as_no_data():
         crs="EPSG:4326",
     )
 
-    result = interpolate_to_zcta(tracts, zctas).set_index("zcta")
+    result = interpolate_to_zcta(tracts, zctas, value_cols=["svi"]).set_index("zcta")
 
     assert result.loc["90000", "svi"] == 1.0
     assert pd.isna(result.loc["90001", "svi"])
+
+
+def test_multiple_value_columns_share_one_overlay():
+    """Adding a variable must not change how any other variable is weighted."""
+    tracts = gpd.GeoDataFrame(
+        {
+            "tract_geoid": ["A", "B"],
+            "svi": [1.0, 0.0],
+            "svi_household": [0.0, 1.0],  # deliberately inverted
+            "pop": [100, 1],
+            "geometry": [cell(0), cell(1)],
+        },
+        crs="EPSG:4326",
+    )
+    zctas = gpd.GeoDataFrame(
+        {"zcta": ["90000"], "geometry": [cell(0, width=2)]}, crs="EPSG:4326"
+    )
+
+    both = interpolate_to_zcta(
+        tracts, zctas, value_cols=["svi", "svi_household"]
+    )
+    alone = interpolate_to_zcta(tracts, zctas, value_cols=["svi"])
+
+    assert both["svi"].iloc[0] == pytest.approx(alone["svi"].iloc[0])
+    assert both["svi"].iloc[0] == pytest.approx(100 / 101)
+    assert both["svi_household"].iloc[0] == pytest.approx(1 / 101)
 
 
 def test_unmatched_zips_stay_no_data_rather_than_being_imputed():
