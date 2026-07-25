@@ -33,7 +33,10 @@ SEED = 7
 # Assigned after inspecting the k=4 profiles; see REPORT.md.
 ARCHETYPES = {
     "urban_vulnerable": "Dense & vulnerable, well served",
-    "remote_underserved": "Remote & underserved",
+    # Named for the defining measure, not for a guess about geography. Its typical member
+    # is a mid-suburban ZCTA at roughly twice the county median distance to a cooling
+    # centre (Norwalk, Montebello, Azusa); the high desert is only 13% of its population.
+    "access_limited": "Access-limited (far from cooling)",
     "hot_not_vulnerable": "Hot but not vulnerable",
     "lower_risk": "Lower risk",
 }
@@ -65,7 +68,7 @@ def name_clusters(profiles: pd.DataFrame, pcts: list[str]) -> dict[int, str]:
         if vulnerable > 60:
             key = "urban_vulnerable"
         elif row[gap] > 65:
-            key = "remote_underserved"
+            key = "access_limited"
         elif row[heat] > 55:
             key = "hot_not_vulnerable"
         else:
@@ -127,7 +130,7 @@ def figure_pca(pcs: pd.DataFrame, loadings: pd.DataFrame, evr: np.ndarray, pcts:
         ax.scatter(
             sub["PC1"], sub["PC2"], s=np.sqrt(sub["POP100"]) / 4,
             alpha=0.75, label=ARCHETYPES[key], color=figures.PALETTE[
-                {"urban_vulnerable": "urban", "remote_underserved": "remote",
+                {"urban_vulnerable": "urban", "access_limited": "remote",
                  "hot_not_vulnerable": "hot_only", "lower_risk": "low"}[key]
             ],
             edgecolor="white", linewidth=0.4,
@@ -148,7 +151,7 @@ def figure_pca(pcs: pd.DataFrame, loadings: pd.DataFrame, evr: np.ndarray, pcts:
     ax.axhline(0, lw=0.5, color=figures.MUTED)
     ax.axvline(0, lw=0.5, color=figures.MUTED)
     ax.set_xlabel("PC1 — vulnerability & disease  (vs. good access)")
-    ax.set_ylabel("PC2 — heat & remoteness")
+    ax.set_ylabel("PC2 — heat & distance from cooling")
     ax.set_title("Two independent routes to high risk\n(point size = population)")
     ax.legend(loc="lower right")
 
@@ -163,7 +166,7 @@ def figure_profiles(profiles: pd.DataFrame, names: dict, pcts: list[str], sizes:
     width = 0.2
     x = np.arange(len(short))
     key_for_color = {
-        "urban_vulnerable": "urban", "remote_underserved": "remote",
+        "urban_vulnerable": "urban", "access_limited": "remote",
         "hot_not_vulnerable": "hot_only", "lower_risk": "low",
     }
     for i, (cid, row) in enumerate(profiles.iterrows()):
@@ -237,11 +240,20 @@ if __name__ == "__main__":
     labelled = profiles.copy()
     labelled.index = [ARCHETYPES[names[i]] for i in profiles.index]
     print(labelled.round(1).to_string())
-    print("\nexemplars:")
+    # Exemplars must be *typical* of their cluster, so pick the members closest to the
+    # cluster centroid. Picking the highest-scoring members instead selects the atypical
+    # tail: the "hot but not vulnerable" cluster averages svi_pct 25 but its top scorers
+    # run 42-67, so naming those as exemplars would misdescribe the group entirely.
+    print("\nexemplars (nearest the cluster centroid — i.e. typical, not extreme):")
+    Xs = pd.DataFrame(X, columns=pcts, index=d.index)
     for cid in sorted(d["cluster"].unique()):
-        sub = d[d["cluster"] == cid].nlargest(4, "draft_score")
+        member = d["cluster"] == cid
+        dist = np.linalg.norm(Xs[member].to_numpy() - km.cluster_centers_[cid], axis=1)
+        sub = d[member].assign(_d=dist).nsmallest(4, "_d")
         print(f"  {ARCHETYPES[names[cid]]:36s} "
-              + ", ".join(f"{r.place_name}" for r in sub.itertuples()))
+              + ", ".join(f"{r.place_name} ({r.zcta})" for r in sub.itertuples()))
+        print(f"  {'':36s}   mean svi_pct {d.loc[member, 'svi_pct'].mean():.0f}, "
+              f"these {sub['svi_pct'].min():.0f}-{sub['svi_pct'].max():.0f}")
 
     out = d[["zcta", "place_name", "POP100", "draft_score", "archetype", "PC1", "PC2"]]
     write_processed(out, "structure_typology", config)

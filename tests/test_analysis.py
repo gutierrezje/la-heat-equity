@@ -117,7 +117,7 @@ def test_clusters_are_named_from_their_profile_not_their_arbitrary_id():
     )
     names = name_clusters(profiles, PCTS)
     assert names[0] == "urban_vulnerable"
-    assert names[1] == "remote_underserved"
+    assert names[1] == "access_limited"
     assert names[2] == "hot_not_vulnerable"
     assert names[3] == "lower_risk"
 
