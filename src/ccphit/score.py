@@ -32,6 +32,8 @@ def assemble_spine(config: dict) -> gpd.GeoDataFrame:
         ("zcta_svi", svi_cols, False),
         ("zcta_nearest_cooling", ["dist_m"], False),
         ("places_zcta", places_cols, False),
+        # Context layer, not a score component — see conform/underservice.py.
+        ("zcta_underservice", ["in_mua", "mua_area_share"], False),
     ]
 
     n = len(spine)
@@ -115,6 +117,9 @@ if __name__ == "__main__":
         "svi_household",
         "svi_minority",
         "svi_housing_transport",
+        # healthcare-access context (not scored)
+        "in_mua",
+        "mua_area_share",
         # component percentiles + composite
         *component_pcts,
         "draft_score",

@@ -6,6 +6,7 @@ import pytest
 from shapely.geometry import box
 
 from ccphit.conform.tract_to_zcta import interpolate_to_zcta
+from ccphit.conform.underservice import designate_zctas
 from ccphit.conform.zip_to_zcta import attach_heat_scores
 
 # Real LA-area coordinates: EPSG:3310 is California Albers, so synthetic geometry
@@ -117,6 +118,71 @@ def test_multiple_value_columns_share_one_overlay():
     assert both["svi"].iloc[0] == pytest.approx(alone["svi"].iloc[0])
     assert both["svi"].iloc[0] == pytest.approx(100 / 101)
     assert both["svi_household"].iloc[0] == pytest.approx(1 / 101)
+
+
+def _tracts_covering(cells):
+    """One tract per cell, equal population, so the centroid lands mid-ZCTA."""
+    return gpd.GeoDataFrame(
+        {
+            "tract_geoid": [str(i) for i in range(len(cells))],
+            "pop": [100] * len(cells),
+            "geometry": cells,
+        },
+        crs="EPSG:4326",
+    )
+
+
+def test_zcta_fully_inside_a_designation_is_fully_underserved():
+    zctas = gpd.GeoDataFrame(
+        {"zcta": ["90000"], "geometry": [cell(1)]}, crs="EPSG:4326"
+    )
+    mua = gpd.GeoDataFrame({"geometry": [cell(0, width=3)]}, crs="EPSG:4326")
+
+    out = designate_zctas(zctas, mua, _tracts_covering([cell(1)])).set_index("zcta")
+
+    assert bool(out.loc["90000", "in_mua"]) is True
+    # Tolerance is 1e-3, not 1e-6: reprojecting two lat/lon boxes of different widths
+    # to EPSG:3310 makes the wider one's straight chord sag away from the narrower
+    # one's along the shared parallel, leaving a ~0.01% sliver.
+    assert out.loc["90000", "mua_area_share"] == pytest.approx(1.0, abs=1e-3)
+
+
+def test_zcta_outside_every_designation_is_not_underserved():
+    zctas = gpd.GeoDataFrame(
+        {"zcta": ["90000"], "geometry": [cell(0)]}, crs="EPSG:4326"
+    )
+    mua = gpd.GeoDataFrame({"geometry": [cell(5)]}, crs="EPSG:4326")
+
+    out = designate_zctas(zctas, mua, _tracts_covering([cell(0)])).set_index("zcta")
+
+    assert bool(out.loc["90000", "in_mua"]) is False
+    assert out.loc["90000", "mua_area_share"] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_partially_designated_zcta_reports_a_fractional_share():
+    """A boolean would throw this away, which is why both views are emitted."""
+    zctas = gpd.GeoDataFrame(
+        {"zcta": ["90000"], "geometry": [cell(0, width=2)]}, crs="EPSG:4326"
+    )
+    mua = gpd.GeoDataFrame({"geometry": [cell(0)]}, crs="EPSG:4326")
+
+    out = designate_zctas(zctas, mua, _tracts_covering([cell(0, width=2)]))
+
+    assert out["mua_area_share"].iloc[0] == pytest.approx(0.5, abs=1e-3)
+
+
+def test_overlapping_designations_cannot_exceed_full_coverage():
+    """HRSA designations overlap each other; without a union the share would double."""
+    zctas = gpd.GeoDataFrame(
+        {"zcta": ["90000"], "geometry": [cell(0, width=2)]}, crs="EPSG:4326"
+    )
+    mua = gpd.GeoDataFrame(
+        {"geometry": [cell(0, width=2), cell(0, width=2)]}, crs="EPSG:4326"
+    )
+
+    out = designate_zctas(zctas, mua, _tracts_covering([cell(0, width=2)]))
+
+    assert out["mua_area_share"].iloc[0] == pytest.approx(1.0, abs=1e-6)
 
 
 def test_unmatched_zips_stay_no_data_rather_than_being_imputed():
