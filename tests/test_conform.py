@@ -6,6 +6,7 @@ import pytest
 from shapely.geometry import box
 
 from ccphit.conform.tract_to_zcta import interpolate_to_zcta
+from ccphit.conform.place_names import assign_place_names
 from ccphit.conform.underservice import designate_zctas
 from ccphit.conform.zip_to_zcta import attach_heat_scores
 
@@ -183,6 +184,56 @@ def test_overlapping_designations_cannot_exceed_full_coverage():
     out = designate_zctas(zctas, mua, _tracts_covering([cell(0, width=2)]))
 
     assert out["mua_area_share"].iloc[0] == pytest.approx(1.0, abs=1e-6)
+
+
+def _places(names, cells, jurisdictions=None):
+    return gpd.GeoDataFrame(
+        {
+            "place_name": names,
+            "jurisdiction": jurisdictions or ["Incorporated City"] * len(names),
+            "geometry": cells,
+        },
+        crs="EPSG:4326",
+    )
+
+
+def test_primary_place_comes_from_the_population_weighted_centroid():
+    """Population, not area, decides the label — consistent with D8."""
+    zctas = gpd.GeoDataFrame(
+        {"zcta": ["90000"], "geometry": [cell(0, width=2)]}, crs="EPSG:4326"
+    )
+    places = _places(["Westside", "Eastside"], [cell(0), cell(1)])
+    # Nearly everyone lives in the eastern half, so that is the primary place even
+    # though the two halves are equal in area.
+    tracts = gpd.GeoDataFrame(
+        {"tract_geoid": ["a", "b"], "pop": [1, 500], "geometry": [cell(0), cell(1)]},
+        crs="EPSG:4326",
+    )
+
+    out = assign_place_names(zctas, places, tracts).set_index("zcta")
+
+    assert out.loc["90000", "place_name"] == "Eastside"
+
+
+def test_straddling_zctas_are_counted_not_hidden():
+    zctas = gpd.GeoDataFrame(
+        {"zcta": ["90000", "90001"], "geometry": [cell(0, width=2), cell(4)]},
+        crs="EPSG:4326",
+    )
+    places = _places(["Westside", "Eastside", "Farville"], [cell(0), cell(1), cell(4)])
+    tracts = gpd.GeoDataFrame(
+        {
+            "tract_geoid": ["a", "b", "c"],
+            "pop": [100, 100, 100],
+            "geometry": [cell(0), cell(1), cell(4)],
+        },
+        crs="EPSG:4326",
+    )
+
+    out = assign_place_names(zctas, places, tracts).set_index("zcta")
+
+    assert out.loc["90000", "places_touched"] == 2  # spans both halves
+    assert out.loc["90001", "places_touched"] == 1  # sits inside one place
 
 
 def test_unmatched_zips_stay_no_data_rather_than_being_imputed():

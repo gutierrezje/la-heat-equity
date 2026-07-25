@@ -15,6 +15,11 @@ sources:
     svi:
         gdb: "SVI2022_CALIFORNIA_tract.gdb"
         layer: "SVI2022_CALIFORNIA_tract"
+    place_boundaries:
+        # LA County Regional Planning city + unincorporated community boundaries.
+        # Labels only, not counted toward the six-source total. Covers unincorporated
+        # areas, which a cities-only layer would leave unlabelled (~1/3 of the county).
+        url: "https://services.arcgis.com/RmCCgQtiZLDCtblq/ArcGIS/rest/services/admin_dist_SDE_DIST_DRP_CITY_COMM_BDY/FeatureServer/0/query"
     calenviroscreen:
         # CalEnviroScreen 4.0, OEHHA/CalEPA — same ArcGIS org as CalHeatScore.
         # Pollution Burden only: the combined CES score also bundles asthma, CVD,

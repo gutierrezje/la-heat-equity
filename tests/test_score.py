@@ -82,6 +82,44 @@ def test_components_are_combined_by_weight():
     assert out["draft_score"].round(6).equals(expected.round(6))
 
 
+def test_multi_column_component_names_its_worst_member():
+    """Tab 1's "top chronic disease" popup field."""
+    cfg = config({"chronic": {"columns": ["diabetes", "copd"], "weight": 1.0}})
+    out = score_zctas(
+        spine(diabetes=[1.0, 9.0, 1.0, 9.0], copd=[9.0, 1.0, 9.0, 1.0]), cfg
+    )
+    assert out["chronic_top"].tolist() == ["copd", "diabetes", "copd", "diabetes"]
+
+
+def test_top_member_is_chosen_on_percentile_not_raw_value():
+    """Raw comparison would always name the variable with the larger units.
+
+    `diabetes` is numerically bigger everywhere, but `asthma` varies more relative to
+    its own distribution in the second half, so it must win there.
+    """
+    cfg = config({"chronic": {"columns": ["diabetes", "asthma"], "weight": 1.0}})
+    out = score_zctas(
+        spine(diabetes=[30.0, 30.0, 10.0, 10.0], asthma=[7.0, 7.0, 11.0, 11.0]), cfg
+    )
+    # rows 2-3 sit high on asthma and low on diabetes despite smaller absolute numbers
+    assert out["chronic_top"].tolist()[2:] == ["asthma", "asthma"]
+
+
+def test_single_column_component_gets_no_top_field():
+    cfg = config({"heat": {"columns": ["heat_risk"], "weight": 1.0}})
+    out = score_zctas(spine(heat_risk=[1, 2, 3, 4]), cfg)
+    assert "heat_top" not in out.columns
+
+
+def test_component_with_no_data_for_a_row_leaves_top_null():
+    """9 ZCTAs have no PLACES estimate; idxmax raises on an all-NaN row."""
+    cfg = config({"chronic": {"columns": ["diabetes", "copd"], "weight": 1.0}})
+    out = score_zctas(
+        spine(diabetes=[1.0, 2.0, None, 4.0], copd=[4.0, 3.0, None, 1.0]), cfg
+    )
+    assert out["chronic_top"].isna().tolist() == [False, False, True, False]
+
+
 def test_adding_a_pillar_is_a_config_edit_only():
     """Same code path, three pillars then four — no signature or branch changes."""
     three = config(

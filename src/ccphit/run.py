@@ -20,6 +20,8 @@ Three layers, each stage naming the artifact it produces:
                                                 tract source (see config `crosswalk`)
       cooling_access -> zcta_nearest_cooling    needs zcta_bounds, cooling_centers, svi_tracts
       underservice   -> zcta_underservice       needs zcta_bounds, mua_areas, svi_tracts
+      place_names    -> zcta_place_names        needs zcta_bounds, place_boundaries,
+                                                svi_tracts
 
     score      the mart: join the spine, compute the composite.
       score -> zcta_scores (+ geojson)  needs zcta_heat_scores, zcta_svi,
@@ -38,11 +40,13 @@ STEPS = [
     ("places", "ccphit.sources.places"),
     ("mua", "ccphit.sources.mua"),
     ("calenviroscreen", "ccphit.sources.calenviroscreen"),
+    ("place_boundaries", "ccphit.sources.place_boundaries"),
     ("boundaries", "ccphit.sources.boundaries"),
     ("zip_to_zcta", "ccphit.conform.zip_to_zcta"),
     ("tract_to_zcta", "ccphit.conform.tract_to_zcta"),
     ("cooling_access", "ccphit.conform.cooling_access"),
     ("underservice", "ccphit.conform.underservice"),
+    ("place_names", "ccphit.conform.place_names"),
     ("score", "ccphit.score"),
 ]
 
