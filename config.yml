@@ -68,6 +68,12 @@ crosswalk:
     ces_tracts:
         output: "zcta_ces"
         columns: [pollution_pct, pm25, diesel_pm, ozone, tox_release]
+publish:
+    # Item id of the hosted feature layer that `ccphit.publish` overwrites. Do the
+    # first publish by hand, then paste its id here so every later run overwrites the
+    # same item — the web map, Dashboard, and StoryMap all reference it by id.
+    # Credentials are read from the environment, never from this file.
+    item_id: ""
 paths:
     processed: "data/processed"
     raw: "data/raw"
