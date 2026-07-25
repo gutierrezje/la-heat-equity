@@ -70,6 +70,20 @@ def describe_local(config: dict) -> tuple[Path, gpd.GeoDataFrame]:
         )
 
     gdf = gpd.read_file(path)
+    required = {
+        "response_category",
+        "response_priority",
+        "investment_category",
+        "investment_priority",
+        "historical_heat_er",
+        "vegetation_shade_pct",
+    }
+    missing = sorted(required - set(gdf.columns))
+    if missing:
+        raise SystemExit(
+            f"{path} is not the ArcGIS product contract; missing fields: {missing}. "
+            "Run the full pipeline."
+        )
     print(f"local artifact : {path} ({path.stat().st_size / 1e6:.1f} MB)")
     print(f"  features     : {len(gdf)}")
     print(f"  fields       : {len(gdf.columns) - 1}")
@@ -102,19 +116,23 @@ def item_summary(gdf: gpd.GeoDataFrame) -> dict:
     as_of_date = as_of(gdf)
     return {
         "snippet": (
-            f"LA County heat-equity risk by ZCTA. Heat forecast as of {as_of_date}; "
-            f"cooling-center access as of the same pipeline run."
+            f"LA County heat equity by ZCTA: current response and long-term "
+            f"investment views. Heat forecast as of {as_of_date}."
         ),
         "description": (
-            "Composite heat-equity risk score for Los Angeles County ZIP Code "
-            "Tabulation Areas, combining forecast heat-health risk (CalHeatScore), "
-            "social vulnerability (CDC/ATSDR SVI 2022, population-weighted areal "
-            "interpolation from census tracts), chronic disease prevalence (CDC "
-            "PLACES 2024), and straight-line distance to the nearest cooling center. "
-            "<br/><br/><b>Read the score as an intensity, not a count</b> — a high "
-            "score means conditions are worse there, not that more people are "
-            "affected. Distance to cooling centers is straight-line and reflects the "
-            "cooling-center layer on the run date, which changes over time. "
+            "One Los Angeles County ZCTA layer supporting two policy questions. "
+            "<b>Current response</b> combines the current CalHeatScore forecast with "
+            "CDC/ATSDR Social Vulnerability Index. <b>Long-term investment</b> screens "
+            "for the joint presence of upper-third historical excess emergency-room "
+            "heat harm, upper-third vulnerability, and lower-third modeled vegetation "
+            "shade. Chronic disease estimates from CDC PLACES provide susceptibility "
+            "context. SVI and historical outcomes are population-weighted areal "
+            "interpolations from census tracts; shade is ground-area weighted from "
+            "block groups. Categories are screening tools, not causal estimates. "
+            "<br/><br/><b>Read indices as intensity, not a count</b> — a high value "
+            "does not state how many people will be harmed. The legacy four-pillar "
+            "draft score and straight-line cooling-center distance remain temporarily "
+            "for Dashboard migration and should not lead the public narrative. "
             f"<br/><br/>Heat forecast as of {as_of_date}. Produced from code; see the "
             "project repository for methodology."
         ),

@@ -25,10 +25,8 @@ Three layers, each stage naming the artifact it produces:
       place_names    -> zcta_place_names        needs zcta_bounds, place_boundaries,
                                                 svi_tracts
 
-    score      the mart: join the spine, compute the composite.
-      score -> zcta_scores (+ geojson)  needs zcta_heat_scores, zcta_svi,
-                                              zcta_nearest_cooling, places_zcta,
-                                              zcta_underservice
+    score      analytical mart and candidate scores -> zcta_scores.parquet
+    product    ArcGIS contract -> zcta_product.parquet + zcta_scores.geojson
 """
 
 import subprocess
@@ -52,6 +50,7 @@ STEPS = [
     ("underservice", "ccphit.conform.underservice"),
     ("place_names", "ccphit.conform.place_names"),
     ("score", "ccphit.score"),
+    ("product", "ccphit.product"),
 ]
 
 

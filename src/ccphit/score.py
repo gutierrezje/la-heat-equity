@@ -1,14 +1,14 @@
-"""The mart: join every conformed source onto the ZCTA spine and score it.
+"""Join every conformed source onto the ZCTA spine and calculate score candidates.
 
-Terminal stage of the pipeline. `zcta_scores.geojson` is what gets published to
-ArcGIS and backs both the Dashboard and the StoryMap.
+This stage writes the full analytical mart. ``ccphit.product`` turns it into the
+smaller, documented ArcGIS layer used by the Dashboard and StoryMap.
 """
 
 import geopandas as gpd
 import pandas as pd
 
 from ccphit.config import load_config
-from ccphit.io import read_processed, write_geojson, write_processed
+from ccphit.io import read_processed, write_processed
 from ccphit.weighting import pop_weighted_pct
 
 
@@ -118,43 +118,8 @@ if __name__ == "__main__":
 
     write_processed(scored, "zcta_scores", config)
 
-    component_pcts = [f"{name}_pct" for name in config["score"]["components"]]
-    places_cols = list(config["sources"]["places"]["measures"].values())
-    component_tops = [
-        f"{name}_top"
-        for name, spec in config["score"]["components"].items()
-        if len(spec["columns"]) > 1
-    ]
-    export_cols = [
-        "zcta",
-        "place_name",  # so every widget can label a neighbourhood, not just a ZIP
-        "jurisdiction",
-        "places_touched",
-        "forecast_date",  # so the published layer states which forecast it reflects
-        "POP100",
-        *component_tops,
-        # raw inputs, for popups
-        "heat_risk",
-        "svi",
-        "dist_m",
-        *places_cols,
-        # SVI sub-themes, for the dashboard's domain breakdown chart
-        "svi_socioeconomic",
-        "svi_household",
-        "svi_minority",
-        "svi_housing_transport",
-        # healthcare-access and environmental-burden context (not scored)
-        "in_mua",
-        "mua_area_share",
-        *config["crosswalk"]["ces_tracts"]["columns"],
-        # component percentiles + composite
-        *component_pcts,
-        "draft_score",
-        "geometry",
-    ]
-    write_geojson(scored, "zcta_scores", config, columns=export_cols)
-
     print(scored["draft_score"].describe())
+    component_pcts = [f"{name}_pct" for name in config["score"]["components"]]
     top = scored.sort_values("draft_score", ascending=False)[
         ["zcta", "POP100", "draft_score", *component_pcts]
     ].head(10)
