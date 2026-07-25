@@ -1,8 +1,12 @@
-import pandas as pd
-import geopandas as gpd
+"""CDC/ATSDR Social Vulnerability Index 2022, census tracts — local .gdb, not an API."""
+
 from pathlib import Path
 
-from ccphit.common import load_config, write_processed
+import geopandas as gpd
+import pandas as pd
+
+from ccphit.config import load_config
+from ccphit.io import write_processed
 
 def fetch_svi_tracts(config: dict) -> pd.DataFrame:
     gdb = Path(config["paths"]["raw"]) / config["sources"]["svi"]["gdb"]

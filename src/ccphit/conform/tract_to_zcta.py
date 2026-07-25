@@ -1,11 +1,19 @@
+"""Tract grain -> ZCTA grain: population-weighted areal interpolation.
+
+The engineering centerpiece. Tract values are apportioned to each tract/ZCTA
+overlap piece by the population that piece carries, not by its area (see D5, D8).
+Intensive variables only — rates and indices, never counts.
+"""
+
 import geopandas as gpd
 
-from pathlib import Path
+from ccphit.config import CRS_M, load_config
+from ccphit.io import read_processed, write_processed
 
-from ccphit.common import CRS_M, load_config, write_processed
 
-
-def tract_to_zcta(tracts: gpd.GeoDataFrame, zctas: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+def interpolate_to_zcta(
+    tracts: gpd.GeoDataFrame, zctas: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
     tracts = tracts[["tract_geoid", "svi", "pop", "geometry"]].copy()
     zctas = zctas[["zcta", "geometry"]].copy()
 
@@ -34,12 +42,10 @@ def tract_to_zcta(tracts: gpd.GeoDataFrame, zctas: gpd.GeoDataFrame) -> gpd.GeoD
 
 if __name__ == "__main__":
     config = load_config()
-    processed_path = Path(config["paths"]["processed"])
+    tracts = read_processed("svi_tracts", config, geo=True)
+    zctas = read_processed("zcta_bounds", config, geo=True)
 
-    tracts = gpd.read_parquet(processed_path / "svi_tracts.parquet")
-    zctas = gpd.read_parquet(processed_path / "zcta_bounds.parquet")
-
-    zcta_svi = tract_to_zcta(tracts, zctas)
+    zcta_svi = interpolate_to_zcta(tracts, zctas)
     write_processed(zcta_svi, "zcta_svi", config)
 
     print(zcta_svi["svi"].describe())

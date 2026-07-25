@@ -17,5 +17,5 @@
 - Missing data sentinel: `-999` (excluded before processing)
 - Scope filter: `FIPS` starts with `06037` (Los Angeles County)
 - CRS: EPSG:4269 in source → reprojected to EPSG:4326 in pipeline
-- Join strategy: tract values allocated to ZCTAs via area-weighted interpolation (`transform/crosswalk.py`, EPSG:3310)
+- Join strategy: tract values allocated to ZCTAs via population-weighted areal interpolation (`conform/tract_to_zcta.py`, EPSG:3310)
 - Output: `data/processed/svi_tracts.parquet` → `data/processed/zcta_svi.parquet`
