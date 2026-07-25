@@ -190,3 +190,21 @@ implemented with broader source validation and tests. The remaining value is a
 ranked set of provenance, source-reliability, geography, and product-positioning
 follow-ups. Keeping stale plans marked `TODO` would obscure which work is
 actually complete; discarding the audit would lose useful independent review.
+
+## D32 — Prepare the ArcGIS build as assembly, not live analysis
+
+**Decision:** freeze the public narrative, widget rules, category colors, popup
+order, figure selection, accessibility text, QA sequence, and demo outline in a
+paste-ready assembly kit before editing the StoryMap and Dashboard.
+
+**Why:** ArcGIS authoring time should be spent configuring and verifying the
+graded artifacts, not recreating methodological decisions in widget
+expressions. Two web maps may reference the same hosted ZCTA layer with
+different renderers; the Dashboard presents them as tabbed map elements.
+Headline indicators filter the precomputed 0/1 priority fields and sum Census
+population. The StoryMap uses three principal figures and keeps specialist
+sensitivity/spatial results optional so the narrative remains readable.
+
+Snapshot-dependent current-response counts stay as explicit placeholders until
+the final pipeline run. Structural counts may be prefilled only after confirming
+the historical-harm and shade source vintages have not changed.
