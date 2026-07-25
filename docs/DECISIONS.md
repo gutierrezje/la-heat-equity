@@ -177,3 +177,16 @@ The scalar `response_index` excludes cooling-center distance and is secondary.
 The old `draft_score`, `resource_gap_pct`, and `dist_m` remain temporarily so
 existing widgets can be migrated without breaking the hosted item. Cooling
 centers remain a point/list service with address and hours, not a score pillar.
+
+## D31 — Preserve the independent audit, not its superseded implementation
+
+**Decision:** retain the still-open findings from the 2026-07-25 Opus audit in
+`docs/AUDIT_BACKLOG.md`. Do not merge its uncommitted CalHeatScore source and
+tests over the implementation already accepted in D20.
+
+**Why:** the audit correctly identified the main claim, spatial-inference,
+pseudo-burden, and forecast-archive failures. Those urgent items have now been
+implemented with broader source validation and tests. The remaining value is a
+ranked set of provenance, source-reliability, geography, and product-positioning
+follow-ups. Keeping stale plans marked `TODO` would obscure which work is
+actually complete; discarding the audit would lose useful independent review.
