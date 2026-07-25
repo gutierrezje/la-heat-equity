@@ -10,16 +10,19 @@ Three layers, each stage naming the artifact it produces:
       calheatscore    -> heat_scores
       svi             -> svi_tracts
       places          -> places_zcta       (already ZCTA grain; needs no conform step)
+      mua             -> mua_areas         (HRSA medically-underserved area polygons)
       boundaries      -> zcta_bounds
 
     conform/   bring each native grain onto the ZCTA grain.
       zip_to_zcta    -> zcta_heat_scores        needs zcta_bounds, heat_scores
       tract_to_zcta  -> zcta_svi                needs zcta_bounds, svi_tracts
       cooling_access -> zcta_nearest_cooling    needs zcta_bounds, cooling_centers, svi_tracts
+      underservice   -> zcta_underservice       needs zcta_bounds, mua_areas, svi_tracts
 
     score      the mart: join the spine, compute the composite.
       score -> zcta_scores (+ geojson)  needs zcta_heat_scores, zcta_svi,
-                                              zcta_nearest_cooling, places_zcta
+                                              zcta_nearest_cooling, places_zcta,
+                                              zcta_underservice
 """
 
 import subprocess
@@ -31,10 +34,12 @@ STEPS = [
     ("calheatscore", "ccphit.sources.calheatscore"),
     ("svi", "ccphit.sources.svi"),
     ("places", "ccphit.sources.places"),
+    ("mua", "ccphit.sources.mua"),
     ("boundaries", "ccphit.sources.boundaries"),
     ("zip_to_zcta", "ccphit.conform.zip_to_zcta"),
     ("tract_to_zcta", "ccphit.conform.tract_to_zcta"),
     ("cooling_access", "ccphit.conform.cooling_access"),
+    ("underservice", "ccphit.conform.underservice"),
     ("score", "ccphit.score"),
 ]
 

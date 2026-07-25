@@ -15,6 +15,12 @@ sources:
     svi:
         gdb: "SVI2022_CALIFORNIA_tract.gdb"
         layer: "SVI2022_CALIFORNIA_tract"
+    mua:
+        # HRSA Medically Underserved Areas. Used instead of HPSA, which has only ~2
+        # usable area designations in LA County once withdrawn and population-group
+        # designations are excluded (see D14). MapServer, not FeatureServer — HRSA's
+        # FeatureServer endpoint is broken.
+        url: "https://gisportal.hrsa.gov/server/rest/services/Shortage/MedicallyUnderservedAreas_FS/MapServer/0/query"
     places:
         # CDC PLACES 2024 release, ZCTA grain — already the project's join unit, so
         # no crosswalk is needed. Scoped by the AOI bbox via the `geolocation` point
