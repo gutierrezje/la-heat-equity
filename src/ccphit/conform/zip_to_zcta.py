@@ -32,8 +32,12 @@ def attach_heat_scores(
 
 if __name__ == "__main__":
     config = load_config()
-    la_zctas = read_processed("zcta_bounds", config, geo=True)
-    heat_scores = read_processed("heat_scores", config)
+    la_zctas = read_processed(
+        "zcta_bounds", config, geo=True, require=["zcta", "POP100"]
+    )
+    heat_scores = read_processed(
+        "heat_scores", config, require=["zip", "forecast_date", "heat_risk"]
+    )
 
     zcta_heat_scores = attach_heat_scores(la_zctas, heat_scores)
     write_processed(zcta_heat_scores, "zcta_heat_scores", config)

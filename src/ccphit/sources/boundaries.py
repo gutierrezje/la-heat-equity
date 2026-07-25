@@ -8,7 +8,7 @@ import geopandas as gpd
 import requests
 
 from ccphit.config import load_config
-from ccphit.io import write_processed
+from ccphit.io import pull_stamp, write_history, write_processed
 
 
 def fetch_county_boundary(config: dict) -> gpd.GeoDataFrame:
@@ -73,4 +73,10 @@ def la_county_zctas(config: dict) -> gpd.GeoDataFrame:
 
 if __name__ == "__main__":
     config = load_config()
-    write_processed(la_county_zctas(config), "zcta_bounds", config)
+    zcta_bounds = la_county_zctas(config)
+    write_processed(zcta_bounds, "zcta_bounds", config)
+
+    # Also a live service. Observed stable across the 2026-06-22 and 2026-07-24
+    # pulls (POP100 and the ZCTA set were bit-identical), but archived anyway so a
+    # silent boundary revision cannot make a past run unreconstructable.
+    write_history(zcta_bounds, "zcta_bounds", config, stamp=pull_stamp())

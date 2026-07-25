@@ -81,9 +81,11 @@ def nearest_cooling_center(
 
 if __name__ == "__main__":
     config = load_config()
-    zctas = read_processed("zcta_bounds", config, geo=True)
-    cooling = read_processed("cooling_centers", config, geo=True)
-    tracts = read_processed("svi_tracts", config, geo=True)
+    zctas = read_processed("zcta_bounds", config, geo=True, require=["zcta"])
+    cooling = read_processed(
+        "cooling_centers", config, geo=True, require=["site_name", "address"]
+    )
+    tracts = read_processed("svi_tracts", config, geo=True, require=["pop"])
 
     nearest = nearest_cooling_center(zctas, cooling, tracts)
     write_processed(nearest, "zcta_nearest_cooling", config)

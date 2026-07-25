@@ -42,8 +42,10 @@ def interpolate_to_zcta(
 
 if __name__ == "__main__":
     config = load_config()
-    tracts = read_processed("svi_tracts", config, geo=True)
-    zctas = read_processed("zcta_bounds", config, geo=True)
+    tracts = read_processed(
+        "svi_tracts", config, geo=True, require=["tract_geoid", "svi", "pop"]
+    )
+    zctas = read_processed("zcta_bounds", config, geo=True, require=["zcta"])
 
     zcta_svi = interpolate_to_zcta(tracts, zctas)
     write_processed(zcta_svi, "zcta_svi", config)
