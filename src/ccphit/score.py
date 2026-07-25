@@ -36,6 +36,8 @@ def assemble_spine(config: dict) -> gpd.GeoDataFrame:
         # Context layers, not score components.
         ("zcta_underservice", ["in_mua", "mua_area_share"], False),
         ("zcta_ces", ces_cols, False),
+        # Display labels, never used in the score (see conform/place_names.py).
+        ("zcta_place_names", ["place_name", "jurisdiction", "places_touched"], False),
     ]
 
     n = len(spine)
@@ -89,6 +91,19 @@ def score_zctas(spine: gpd.GeoDataFrame, config: dict) -> gpd.GeoDataFrame:
         )
         spine[f"{name}_pct"] = ranked.mean(axis=1)
 
+        if len(cols) > 1:
+            # Which member of the component is worst here. Chosen on *percentile*, not
+            # raw value: diabetes spans 1.0-36.9 and asthma 7.0-11.6, so comparing raw
+            # prevalences would name diabetes almost everywhere.
+            # Populates the Tab 1 popup's "top chronic disease" for the chronic pillar.
+            # idxmax raises on an all-NaN row, so restrict it to rows that have data
+            # (the 9 ZCTAs with no PLACES estimate stay null, per D4).
+            has_any = ranked.notna().any(axis=1)
+            top = pd.Series(None, index=ranked.index, dtype=object)
+            if has_any.any():
+                top.loc[has_any] = ranked.loc[has_any].idxmax(axis=1)
+            spine[f"{name}_top"] = top
+
     spine["draft_score"] = sum(
         spec["weight"] * spine[f"{name}_pct"] for name, spec in components.items()
     )
@@ -105,10 +120,19 @@ if __name__ == "__main__":
 
     component_pcts = [f"{name}_pct" for name in config["score"]["components"]]
     places_cols = list(config["sources"]["places"]["measures"].values())
+    component_tops = [
+        f"{name}_top"
+        for name, spec in config["score"]["components"].items()
+        if len(spec["columns"]) > 1
+    ]
     export_cols = [
         "zcta",
+        "place_name",  # so every widget can label a neighbourhood, not just a ZIP
+        "jurisdiction",
+        "places_touched",
         "forecast_date",  # so the published layer states which forecast it reflects
         "POP100",
+        *component_tops,
         # raw inputs, for popups
         "heat_risk",
         "svi",
