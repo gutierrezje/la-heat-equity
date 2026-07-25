@@ -17,9 +17,13 @@ def pop_weighted_pct(values: pd.Series, pop: pd.Series) -> pd.Series:
     valid = values.notna() & pop.notna() & (pop > 0)
     if not valid.any():
         return out
-    ranked = pd.DataFrame({"v": values[valid], "p": pop[valid]}).sort_values("v")
-    cum = ranked["p"].cumsum()
-    ranked["pct"] = (cum - 0.5 * ranked["p"]) / ranked["p"].sum() * 100
-    ranked["pct"] = ranked.groupby("v", sort=False)["pct"].transform("mean")
-    out.loc[ranked.index] = ranked["pct"]
+
+    # Aggregate population per distinct value *before* ranking. Ranking row-by-row
+    # and averaging within a tie group makes the result depend on row order, which
+    # matters here because heat_risk is an integer 0-4 and is almost all ties.
+    df = pd.DataFrame({"v": values[valid], "p": pop[valid]})
+    by_value = df.groupby("v", sort=True)["p"].sum().sort_index()
+    pct = (by_value.cumsum() - 0.5 * by_value) / by_value.sum() * 100
+
+    out.loc[df.index] = df["v"].map(pct)
     return out

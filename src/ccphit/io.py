@@ -30,6 +30,11 @@ def write_geojson(
 ) -> None:
     path = processed_dir(config) / f"{name}.geojson"
     path.parent.mkdir(parents=True, exist_ok=True)
+    if columns is not None and gdf.geometry.name not in columns:
+        raise ValueError(
+            f"{name}.geojson: columns must include the active geometry column "
+            f"{gdf.geometry.name!r}; got {columns!r}"
+        )
     out = gdf[columns] if columns is not None else gdf
     out.to_file(path, driver="GeoJSON")
     print(f"{name}: {len(out)} features -> {path}")

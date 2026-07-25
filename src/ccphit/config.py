@@ -12,7 +12,7 @@ CRS_M = "EPSG:3310"
 
 def load_config() -> dict:
     with open("config.yml", "r") as f:
-        return yaml.load(f, Loader=yaml.FullLoader)
+        return yaml.safe_load(f)
 
 
 def processed_dir(config: dict) -> Path:
