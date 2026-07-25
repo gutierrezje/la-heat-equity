@@ -9,6 +9,7 @@ Three layers, each stage naming the artifact it produces:
       cooling_centers -> cooling_centers
       calheatscore    -> heat_scores
       svi             -> svi_tracts
+      places          -> places_zcta       (already ZCTA grain; needs no conform step)
       boundaries      -> zcta_bounds
 
     conform/   bring each native grain onto the ZCTA grain.
@@ -17,7 +18,8 @@ Three layers, each stage naming the artifact it produces:
       cooling_access -> zcta_nearest_cooling    needs zcta_bounds, cooling_centers, svi_tracts
 
     score      the mart: join the spine, compute the composite.
-      score -> zcta_scores (+ geojson)  needs zcta_heat_scores, zcta_svi, zcta_nearest_cooling
+      score -> zcta_scores (+ geojson)  needs zcta_heat_scores, zcta_svi,
+                                              zcta_nearest_cooling, places_zcta
 """
 
 import subprocess
@@ -28,6 +30,7 @@ STEPS = [
     ("cooling_centers", "ccphit.sources.cooling_centers"),
     ("calheatscore", "ccphit.sources.calheatscore"),
     ("svi", "ccphit.sources.svi"),
+    ("places", "ccphit.sources.places"),
     ("boundaries", "ccphit.sources.boundaries"),
     ("zip_to_zcta", "ccphit.conform.zip_to_zcta"),
     ("tract_to_zcta", "ccphit.conform.tract_to_zcta"),

@@ -15,6 +15,17 @@ sources:
     svi:
         gdb: "SVI2022_CALIFORNIA_tract.gdb"
         layer: "SVI2022_CALIFORNIA_tract"
+    places:
+        # CDC PLACES 2024 release, ZCTA grain — already the project's join unit, so
+        # no crosswalk is needed. Scoped by the AOI bbox via the `geolocation` point
+        # (the dataset carries no state/county field); the ZCTA spine join defines
+        # actual scope, per D2.
+        url: "https://chronicdata.cdc.gov/resource/kee5-23sr.json"
+        measures: # source field -> output column
+            casthma_crudeprev: "asthma"
+            copd_crudeprev: "copd"
+            diabetes_crudeprev: "diabetes"
+            phlth_crudeprev: "poor_phys_health"
 paths:
     processed: "data/processed"
     raw: "data/raw"
@@ -22,8 +33,22 @@ paths:
     # only the current 7-day window, so an overwritten pull is gone for good).
     history: "data/history"
 score:
-    weights:
-        heat: 0.34
-        svi: 0.33
-        resource_gap: 0.33
-        
+    # Each component population-weighted percentile-ranks every column it lists, then
+    # averages those percentiles. A single-column component is just its own percentile;
+    # `chronic` is the mean of its four condition percentiles. Components are combined
+    # by weight and the weights must sum to 1.
+    #
+    # Equal weights are a placeholder pending mentor review (see D7).
+    components:
+        heat:
+            columns: [heat_risk]
+            weight: 0.25
+        svi:
+            columns: [svi]
+            weight: 0.25
+        chronic:
+            columns: [asthma, copd, diabetes, poor_phys_health]
+            weight: 0.25
+        resource_gap:
+            columns: [dist_m]
+            weight: 0.25

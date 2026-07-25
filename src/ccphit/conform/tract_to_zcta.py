@@ -12,9 +12,17 @@ from ccphit.io import read_processed, write_processed
 
 
 def interpolate_to_zcta(
-    tracts: gpd.GeoDataFrame, zctas: gpd.GeoDataFrame
+    tracts: gpd.GeoDataFrame,
+    zctas: gpd.GeoDataFrame,
+    value_cols: list[str],
 ) -> gpd.GeoDataFrame:
-    tracts = tracts[["tract_geoid", "svi", "pop", "geometry"]].copy()
+    """Apportion intensive tract variables onto ZCTAs, weighted by population.
+
+    `value_cols` must all be intensive (rates, indices) — they are averaged, never
+    summed. The overlay is the expensive part and is shared across every column, so
+    adding a variable costs almost nothing.
+    """
+    tracts = tracts[["tract_geoid", "pop", "geometry", *value_cols]].copy()
     zctas = zctas[["zcta", "geometry"]].copy()
 
     tracts_m = tracts.to_crs(CRS_M)
@@ -28,26 +36,36 @@ def interpolate_to_zcta(
         keep_geom_type=False,
     )
     ix["w"] = ix["pop"] * (ix.geometry.area / ix["tract_area"])
-    ix["w_svi"] = ix["svi"] * ix["w"]
+    for col in value_cols:
+        ix[f"w_{col}"] = ix[col] * ix["w"]
 
-    svi_by_zcta = ix.groupby("zcta", as_index=False).agg(
-        w_svi=("w_svi", "sum"),
+    grouped = ix.groupby("zcta", as_index=False).agg(
         w=("w", "sum"),
+        **{f"w_{col}": (f"w_{col}", "sum") for col in value_cols},
     )
-    svi_by_zcta["svi"] = svi_by_zcta["w_svi"] / svi_by_zcta["w"]
+    for col in value_cols:
+        grouped[col] = grouped[f"w_{col}"] / grouped["w"]
 
-    out = zctas_m.merge(svi_by_zcta[["zcta", "svi"]], on="zcta", how="left")
-    return out[["zcta", "svi", "geometry"]].to_crs(epsg=4326)
+    out = zctas_m.merge(grouped[["zcta", *value_cols]], on="zcta", how="left")
+    return out[["zcta", *value_cols, "geometry"]].to_crs(epsg=4326)
 
+
+SVI_COLS = [
+    "svi",
+    "svi_socioeconomic",
+    "svi_household",
+    "svi_minority",
+    "svi_housing_transport",
+]
 
 if __name__ == "__main__":
     config = load_config()
     tracts = read_processed(
-        "svi_tracts", config, geo=True, require=["tract_geoid", "svi", "pop"]
+        "svi_tracts", config, geo=True, require=["tract_geoid", "pop", *SVI_COLS]
     )
     zctas = read_processed("zcta_bounds", config, geo=True, require=["zcta"])
 
-    zcta_svi = interpolate_to_zcta(tracts, zctas)
+    zcta_svi = interpolate_to_zcta(tracts, zctas, value_cols=SVI_COLS)
     write_processed(zcta_svi, "zcta_svi", config)
 
-    print(zcta_svi["svi"].describe())
+    print(zcta_svi[SVI_COLS].describe().round(3).to_string())
