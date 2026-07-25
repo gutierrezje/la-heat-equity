@@ -1,10 +1,17 @@
 """Artifact reading/writing contracts."""
 
 import geopandas as gpd
+import pandas as pd
 import pytest
 from shapely.geometry import Point
 
-from ccphit.io import read_processed, write_geojson, write_history, write_processed
+from ccphit.io import (
+    StaleArtifactError,
+    read_processed,
+    write_geojson,
+    write_history,
+    write_processed,
+)
 
 
 @pytest.fixture
@@ -43,6 +50,38 @@ def test_geojson_export_accepts_an_explicit_geometry_column(config, scored):
 def test_processed_roundtrip_preserves_geometry(config, scored):
     write_processed(scored, "zcta_scores", config)
     assert read_processed("zcta_scores", config, geo=True).geometry.notna().all()
+
+
+def test_artifact_predating_a_column_rename_is_rejected_on_read(config):
+    """Resuming with --from onto artifacts from an older pipeline version must fail
+    immediately and say how to fix it, not KeyError several stages later."""
+    stale = pd.DataFrame(
+        # the pre-rename schema: `date` before it became `forecast_date`
+        {"zip": ["90813"], "date": ["2026-06-22"], "heat_risk": [2]}
+    )
+    write_processed(stale, "heat_scores", config)
+
+    with pytest.raises(StaleArtifactError) as excinfo:
+        read_processed(
+            "heat_scores", config, require=["zip", "forecast_date", "heat_risk"]
+        )
+
+    message = str(excinfo.value)
+    assert "forecast_date" in message  # names what is missing
+    assert "date" in message  # shows what was found instead
+    assert "ccphit.run" in message  # tells you how to recover
+
+
+def test_required_columns_present_reads_normally(config):
+    fresh = pd.DataFrame(
+        {"zip": ["90813"], "forecast_date": ["2026-07-24"], "heat_risk": [4]}
+    )
+    write_processed(fresh, "heat_scores", config)
+
+    result = read_processed(
+        "heat_scores", config, require=["zip", "forecast_date", "heat_risk"]
+    )
+    assert result["heat_risk"].iloc[0] == 4
 
 
 def test_history_is_stamped_by_the_date_the_data_describes(config, scored):

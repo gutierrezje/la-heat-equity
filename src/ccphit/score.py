@@ -13,9 +13,16 @@ from ccphit.weighting import pop_weighted_pct
 
 
 def assemble_spine(config: dict) -> gpd.GeoDataFrame:
-    spine = read_processed("zcta_heat_scores", config, geo=True)
-    zcta_svi = read_processed("zcta_svi", config)
-    zcta_nearest = read_processed("zcta_nearest_cooling", config)
+    spine = read_processed(
+        "zcta_heat_scores",
+        config,
+        geo=True,
+        require=["zcta", "POP100", "forecast_date", "heat_risk"],
+    )
+    zcta_svi = read_processed("zcta_svi", config, require=["zcta", "svi"])
+    zcta_nearest = read_processed(
+        "zcta_nearest_cooling", config, require=["zcta", "dist_m"]
+    )
 
     n = len(spine)
 
