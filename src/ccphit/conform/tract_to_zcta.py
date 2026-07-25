@@ -50,22 +50,21 @@ def interpolate_to_zcta(
     return out[["zcta", *value_cols, "geometry"]].to_crs(epsg=4326)
 
 
-SVI_COLS = [
-    "svi",
-    "svi_socioeconomic",
-    "svi_household",
-    "svi_minority",
-    "svi_housing_transport",
-]
-
 if __name__ == "__main__":
     config = load_config()
-    tracts = read_processed(
-        "svi_tracts", config, geo=True, require=["tract_geoid", "pop", *SVI_COLS]
-    )
     zctas = read_processed("zcta_bounds", config, geo=True, require=["zcta"])
 
-    zcta_svi = interpolate_to_zcta(tracts, zctas, value_cols=SVI_COLS)
-    write_processed(zcta_svi, "zcta_svi", config)
+    # One pass per configured tract source. The overlay is per-source (each has its own
+    # tract geometry and vintage), but the weighting logic is shared — which is what
+    # makes the crosswalk a reusable component rather than an SVI-specific script.
+    for artifact, spec in config["crosswalk"].items():
+        cols = spec["columns"]
+        tracts = read_processed(
+            artifact, config, geo=True, require=["tract_geoid", "pop", *cols]
+        )
+        result = interpolate_to_zcta(tracts, zctas, value_cols=cols)
+        write_processed(result, spec["output"], config)
 
-    print(zcta_svi[SVI_COLS].describe().round(3).to_string())
+        covered = result[cols[0]].notna().sum()
+        print(f"  {artifact}: {covered}/{len(result)} ZCTAs covered")
+        print(result[cols].describe().round(3).to_string())

@@ -11,11 +11,13 @@ Three layers, each stage naming the artifact it produces:
       svi             -> svi_tracts
       places          -> places_zcta       (already ZCTA grain; needs no conform step)
       mua             -> mua_areas         (HRSA medically-underserved area polygons)
+      calenviroscreen -> ces_tracts        (environmental burden, tract grain)
       boundaries      -> zcta_bounds
 
     conform/   bring each native grain onto the ZCTA grain.
       zip_to_zcta    -> zcta_heat_scores        needs zcta_bounds, heat_scores
-      tract_to_zcta  -> zcta_svi                needs zcta_bounds, svi_tracts
+      tract_to_zcta  -> zcta_svi, zcta_ces      needs zcta_bounds + each configured
+                                                tract source (see config `crosswalk`)
       cooling_access -> zcta_nearest_cooling    needs zcta_bounds, cooling_centers, svi_tracts
       underservice   -> zcta_underservice       needs zcta_bounds, mua_areas, svi_tracts
 
@@ -35,6 +37,7 @@ STEPS = [
     ("svi", "ccphit.sources.svi"),
     ("places", "ccphit.sources.places"),
     ("mua", "ccphit.sources.mua"),
+    ("calenviroscreen", "ccphit.sources.calenviroscreen"),
     ("boundaries", "ccphit.sources.boundaries"),
     ("zip_to_zcta", "ccphit.conform.zip_to_zcta"),
     ("tract_to_zcta", "ccphit.conform.tract_to_zcta"),
