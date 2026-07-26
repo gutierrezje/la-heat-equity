@@ -1,6 +1,7 @@
 # Code inventory for the condensed final project
 
-**Prepared:** 2026-07-26 · **Baseline:** `main` @ `1e797f1` · 3,806 lines of `src/`, 118 tests
+**Prepared:** 2026-07-26 · **Corrected baseline:** `main` @ `baebb0c` · 3,806 lines
+of `src/`, 121 tests
 
 Applies D28's retention rule — *"final code should contain only sources used in a figure,
 validation check, score, or required interface"* — to every module, by tracing what the
@@ -16,11 +17,12 @@ is the scoping that gate asks for.
 | tier | lines | share | action |
 |---|---:|---:|---|
 | **A — production core** | 2,573 | 68% | keep, maintain, keep tested |
-| **B — cited evidence** | 350 | 9% | keep, run on demand |
+| **B — tracked evidence** | 663 | 17% | keep, run on demand |
 | **C — backs a tracked decision only** | 307 | 8% | keep for the record |
-| **D — backs nothing tracked** | 576 | 15% | **cut or migrate its decisions** |
+| **D — exploratory and no longer cited** | 263 | 7% | archive or cut |
 
-The condensed project is roughly **3,230 lines (85%)**. The genuine cut is Tier D.
+These tiers classify analysis code. Source pruning is a separate decision below; a final
+line-count target should not be stated until the MUA and CalEnviroScreen decisions are made.
 
 ---
 
@@ -48,17 +50,20 @@ all figures →  analysis.figures           (shared style)
 ```
 
 `shade_equity`, `validation`, `equity` and `figures` live in `analysis/` but are **import-time
-dependencies of the published product**. They cannot be pruned as "analysis," and they should be
-moved out of `analysis/` so the boundary reflects reality.
+dependencies of the published product**. They cannot be pruned as "analysis." Moving them
+could make the package boundary clearer, but that refactor should wait until the StoryMap
+and Dashboard are complete.
 
 ---
 
-## Tier B — evidence the final report cites
+## Tier B — tracked evidence
 
 | module | lines | why it stays |
 |---|---:|---|
 | `analysis/spatial.py` | 211 | 6 citations + `spatial_lisa_map.png`; backs D27 |
 | `analysis/chronic_sensitivity.py` | 139 | 2 citations + `chronic_sensitivity.png`; backs D25 |
+| `analysis/crosswalk_validation.py` | 167 | README results and command; defends the tract→ZCTA crosswalk |
+| `analysis/weight_sensitivity.py` | 146 | README results and command; tests sensitivity to normative weights |
 
 ---
 
@@ -74,31 +79,28 @@ heat-based version of the same argument.
 
 ---
 
-## Tier D — backs nothing in the tracked record
+## Tier D — exploratory and no longer cited
 
 | module | lines | backs | status |
 |---|---:|---|---|
 | `analysis/structure.py` | 263 | PCA, archetypes → **D1–D19 only** | untracked |
-| `analysis/crosswalk_validation.py` | 167 | crosswalk defence → **D19** | untracked |
-| `analysis/weight_sensitivity.py` | 146 | rank stability → **D18** | untracked |
 
-Zero citations in `RESEARCH_REPORT.md` or `STORYMAP_COPY.md`; zero references in
-`docs/DECISIONS.md`; none imported by production.
+`structure.py` has no citation in `RESEARCH_REPORT.md`, `STORYMAP_COPY.md`, the README,
+or `docs/DECISIONS.md`, and is not imported by production.
 
-**The reason is a records problem, not a quality problem.** `docs/DECISIONS.md` is a fresh log
-starting at **D20**. The original **D1–D19** — the common spatial unit, the ZIP↔ZCTA
-reconciliation, population-weighted interpolation, the composite design — live **only in
-gitignored `proposal/DECISIONS.md`**.
+There is also a records problem independent of this tier. `docs/DECISIONS.md` starts at
+**D20**. The original **D1–D19**—the common spatial unit, ZIP↔ZCTA reconciliation,
+population-weighted interpolation, and composite design—live only in gitignored
+`proposal/DECISIONS.md`.
 
-So the decisions justifying the pipeline's *core design* are untracked, while the tracked log
-covers only the audit-era corrections. Two consequences:
+So the decisions justifying the pipeline's *core design* are untracked, while the tracked
+log covers only the audit-era corrections. The still-valid portions of D1–D19 should be
+migrated carefully because later entries supersede parts of the early methodology.
 
-1. `weight_sensitivity` is genuinely **superseded**. `candidate_uncertainty` answers the same
-   question against an *external* benchmark instead of the score's own components. Cut it.
-2. `structure` and `crosswalk_validation` are **not** superseded — the crosswalk is still the
-   project's engineering centrepiece, and it is currently defended by an untracked document and
-   an uncited module. **Migrate D5/D8/D19 into `docs/`, or the crosswalk claim has no tracked
-   justification.**
+`weight_sensitivity` and `candidate_uncertainty` are not substitutes. The first tests how
+rankings respond to normative weight choices; the second tests uncertainty in agreement
+with an external historical benchmark. Weight sensitivity becomes obsolete only if the
+legacy scalar score itself is retired.
 
 ---
 
@@ -107,28 +109,28 @@ covers only the audit-era corrections. Two consequences:
 D28 names the leading six as CalHeatScore, SVI, PLACES, historical heat harm, shade, cooling
 centers — and marks MUA and CalEnviroScreen "weaker." Tracing actual consumption:
 
-| source | in score | in product | in docs | verdict |
-|---|:--:|:--:|--:|---|
-| calheatscore | ✅ | ✅ | 10 | scored pillar |
-| svi | ✅ | ✅ | 4 | scored pillar |
-| places | ✅ | ✅ | 8 | scored pillar |
-| cooling_centers | ✅ | ✅ | 11 | scored pillar |
-| county_heat_outcomes | — | ✅ | 3 | investment view |
-| shade | — | ✅ | 0 | investment view |
-| boundaries · place_boundaries | ✅ | ✅ | 8 / 5 | infrastructure |
-| **mua** | ✅ | ❌ | 0 | **scored but not published or discussed** |
-| **calenviroscreen** | ❌ | ❌ | 0 | **no downstream use at all** |
+| source | in score formula | in ArcGIS product | tracked evidence | verdict |
+|---|:--:|:--:|:--:|---|
+| calheatscore | ✅ | ✅ | ✅ | scored pillar |
+| svi | ✅ | ✅ | ✅ | scored pillar |
+| places | ✅ | ✅ | ✅ | scored pillar |
+| cooling_centers | ✅ | ✅ | ✅ | scored pillar |
+| county_heat_outcomes | — | ✅ | ✅ | investment view |
+| shade | — | ✅ | ✅ | investment view |
+| boundaries · place_boundaries | — | ✅ | ✅ | infrastructure |
+| **mua** | — | — | — | joined to analytical mart, otherwise unused |
+| **calenviroscreen** | — | — | — | joined to analytical mart, otherwise unused |
 
-**CalEnviroScreen fails every limb of D28's test.** Cutting it removes `sources/calenviroscreen.py`
-(83), the `ces_tracts` crosswalk entry, and five product columns. It was added for the
-six-source count; D28's six no longer includes it.
+**CalEnviroScreen fails every limb of D28's test.** Cutting it removes
+`sources/calenviroscreen.py` (83), the `ces_tracts` crosswalk entry, and five columns from
+the broad `zcta_scores.parquet` analytical mart. Those five columns are **not** in the
+public ArcGIS product. It was added for the six-source count; D28's six no longer includes
+it.
 
-**MUA is the awkward one.** It is a *scored* input — `in_mua` appears in `score.py` — yet appears
-in no figure, no report section, and is absent from the product. Either promote it to the
-published layer or drop it from the score; scoring an input nobody can see is the worst of both.
-
-*(`shade` shows 0 doc mentions because the report references it as "shade" prose and
-`shade_equity.png`; it is genuinely used.)*
+**MUA is also orphaned, but it is not scored.** `score.py` joins `in_mua` and
+`mua_area_share` into the analytical mart as context; neither field appears in
+`score.components` or the public export. Either promote MUA to a documented context layer
+or remove its source, conform stage, and mart join.
 
 ---
 
@@ -138,25 +140,32 @@ published layer or drop it from the score; scoring an input nobody can see is th
 src/ccphit/
 ├── config.py · io.py · weighting.py · run.py
 ├── sources/     8 modules  (drop calenviroscreen; resolve mua)
-├── conform/     5 modules  (drop underservice if mua goes)
+├── conform/     4–5 modules  (drop underservice if mua goes)
 ├── derive/      ← new home for shade_equity, validation, equity, figures
 │                  (production dependencies currently mislabelled as analysis)
 ├── score.py · product.py · publish.py
 └── analysis/    spatial · chronic_sensitivity · candidate_uncertainty
-                 (+ structure, crosswalk_validation *if* D5/D8/D19 are migrated)
+                 · crosswalk_validation
+                 (+ weight_sensitivity until the legacy scalar score is retired)
 ```
 
 ## Do these first, in order
 
-1. **Migrate D1–D19 from `proposal/` into `docs/`.** Everything else in Tier D depends on this
-   answer, and the repo's central reproducibility claim currently rests on untracked files.
-2. **Cut `weight_sensitivity.py`** — superseded by `candidate_uncertainty.py`.
-3. **Cut `calenviroscreen`** — fails all four limbs of D28's test.
-4. **Decide MUA**: publish it or unscore it.
-5. **Move `shade_equity`, `validation`, `equity`, `figures` out of `analysis/`** so the package
-   boundary matches the import graph.
+1. **Migrate the still-valid parts of D1–D19 from `proposal/` into `docs/`.** Preserve the
+   chronological record, but mark claims superseded by D20+ rather than copying
+   contradictions as current methodology.
+2. **Cut `calenviroscreen` after the ArcGIS migration gate** — it fails all four limbs of
+   D28's test and is absent from the public schema.
+3. **Decide MUA**: publish and explain it as context, or remove it from the pipeline and
+   analytical mart. It is not currently scored.
+4. **Retain `weight_sensitivity.py` until the legacy scalar score is retired.** Then remove
+   both together rather than claiming candidate uncertainty supersedes it.
+5. **Archive or cut `structure.py`** if the PCA/archetype story will not return.
 6. **Cite `candidate_uncertainty` (D33) in the report**, which currently makes the weaker
    heat-based version of that argument.
+7. **Defer moving production helpers out of `analysis/`** unless package cleanup is worth
+   the import churn after the StoryMap and Dashboard are complete. The dependency finding
+   is real; the rename is not a product requirement.
 
-Steps 2–5 are gated by D28 behind the Dashboard field migration. Step 1 is not gated and should
-happen regardless.
+Source and public-schema deletions remain gated by D28 behind the Dashboard field
+migration. Decision-log repair and report citation are not gated.
