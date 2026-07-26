@@ -208,3 +208,66 @@ sensitivity/spatial results optional so the narrative remains readable.
 Snapshot-dependent current-response counts stay as explicit placeholders until
 the final pipeline run. Structural counts may be prefilled only after confirming
 the historical-harm and shade source vintages have not changed.
+
+## D21 — The resource-gap pillar, not the heat pillar, is what drags the index away from historical harm
+
+**Finding.** `validation.py` compared four candidate designs against LA County's
+excess-ER heat measure and reported four rank correlations with no uncertainty attached.
+Those numbers carry the report's central recommendation, so they were bootstrapped
+(`ccphit.analysis.candidate_uncertainty`, 5,000 resamples of ZIP-code areas) and compared
+as **paired** differences, since every candidate is scored on the same areas against the
+same benchmark and the correlations are therefore dependent.
+
+The comparison was also re-run on the **common complete subset** (282 areas). `validation.py`
+computed each candidate on its own complete rows — 285 for "susceptibility only" and 282
+for the rest — which confounds design with coverage.
+
+**The four candidates hold up, with one exception:**
+
+| candidate | ρ | 95% CI | vs current index |
+|---|---|---|---|
+| current four-pillar | 0.516 | 0.426–0.596 | — |
+| response: 50% heat | 0.550 | 0.461–0.628 | +0.034, CI −0.017 to 0.084 → **not distinguishable** |
+| three equal pillars | 0.680 | 0.610–0.740 | +0.164, p < 0.0001 |
+| susceptibility only | 0.738 | 0.676–0.790 | +0.222, p < 0.0001 |
+
+**The candidates differ in more than one way at a time**, so those gaps cannot be
+attributed to a specific pillar — "three equal pillars" both drops the resource gap *and*
+reweights heat. Removing exactly one pillar at a time from an equal-weight index isolates
+each contribution:
+
+| design | ρ | difference | reading |
+|---|---|---|---|
+| all four pillars | 0.516 | — | |
+| without heat | 0.562 | +0.045, CI −0.006 to 0.099 | **no detectable effect** |
+| without resource_gap | 0.680 | +0.164, p < 0.0001 | **removing it improves agreement** |
+| without chronic | 0.286 | −0.231, p < 0.0001 | carries signal |
+| without svi | 0.207 | −0.310, p < 0.0001 | carries signal |
+
+**Correction to emphasis.** The report leads with the forecast heat pillar's weak
+agreement with historical harm (ρ +0.12), which is true — but heat's *presence in the
+index at 25%* has **no detectable effect** on historical agreement. The pillar that
+measurably drags the index down is **resource gap**.
+
+**Mechanism.** Distance to a listed cooling centre is substantially a population-density
+proxy, and density predicts historical harm:
+
+| relationship | Spearman |
+|---|---|
+| resource_gap ↔ log population density | **−0.46** |
+| historical harm ↔ log population density | **+0.31** |
+| resource_gap ↔ historical harm | **−0.33** |
+
+So the pillar enters the index oriented "higher distance = worse" while being *inversely*
+related to observed harm. It does not merely add noise; it **subtracts signal**. This is
+the quantified form of A10's warning that the cooling measure partly captures urban form.
+
+**Consequence.** For an *investment* index judged against historical harm, the resource
+gap should not be a scored pillar. It remains meaningful as a **service-planning layer**
+shown separately — facility sparsity is a real operational fact, it is simply not a
+predictor of where heat has historically harmed people. For an *operational response*
+index the question is open, because historical agreement is the wrong criterion for a
+forecast-driven product.
+
+**Not done:** the score was left unchanged. Removing a pillar is a methodology decision
+for the mentor conversation, and this entry is the evidence for it, not the authority.
