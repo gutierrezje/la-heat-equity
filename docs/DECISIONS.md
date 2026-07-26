@@ -209,14 +209,18 @@ Snapshot-dependent current-response counts stay as explicit placeholders until
 the final pipeline run. Structural counts may be prefilled only after confirming
 the historical-harm and shade source vintages have not changed.
 
-## D21 — The resource-gap pillar, not the heat pillar, is what drags the index away from historical harm
+## D33 — The resource-gap pillar, not the heat pillar, is what drags the index away from historical harm
 
 **Finding.** `validation.py` compared four candidate designs against LA County's
 excess-ER heat measure and reported four rank correlations with no uncertainty attached.
 Those numbers carry the report's central recommendation, so they were bootstrapped
-(`ccphit.analysis.candidate_uncertainty`, 5,000 resamples of ZIP-code areas) and compared
-as **paired** differences, since every candidate is scored on the same areas against the
-same benchmark and the correlations are therefore dependent.
+(`ccphit.analysis.candidate_uncertainty`, 5,000 resamples of 12 compact geographic
+blocks) and compared as **paired** differences, since every candidate is scored on the
+same areas against the same benchmark and the correlations are therefore dependent.
+Resampling whole blocks, rather than individual ZIP-code areas, preserves some of the
+spatial dependence already established by the project's Moran analysis.
+The substantive conclusions were unchanged with 8, 12, or 16 blocks; 12 is the
+reported primary specification (6–40 areas per block).
 
 The comparison was also re-run on the **common complete subset** (282 areas). `validation.py`
 computed each candidate on its own complete rows — 285 for "susceptibility only" and 282
@@ -226,10 +230,10 @@ for the rest — which confounds design with coverage.
 
 | candidate | ρ | 95% CI | vs current index |
 |---|---|---|---|
-| current four-pillar | 0.516 | 0.426–0.596 | — |
-| response: 50% heat | 0.550 | 0.461–0.628 | +0.034, CI −0.017 to 0.084 → **not distinguishable** |
-| three equal pillars | 0.680 | 0.610–0.740 | +0.164, p < 0.0001 |
-| susceptibility only | 0.738 | 0.676–0.790 | +0.222, p < 0.0001 |
+| current four-pillar | 0.516 | 0.385–0.616 | — |
+| response: 50% heat | 0.550 | 0.416–0.661 | +0.034, CI −0.033 to 0.126 → **not distinguishable** |
+| three equal pillars | 0.680 | 0.552–0.770 | +0.164, CI 0.107 to 0.240 |
+| susceptibility only | 0.738 | 0.605–0.835 | +0.222, CI 0.130 to 0.319 |
 
 **The candidates differ in more than one way at a time**, so those gaps cannot be
 attributed to a specific pillar — "three equal pillars" both drops the resource gap *and*
@@ -239,10 +243,10 @@ each contribution:
 | design | ρ | difference | reading |
 |---|---|---|---|
 | all four pillars | 0.516 | — | |
-| without heat | 0.562 | +0.045, CI −0.006 to 0.099 | **no detectable effect** |
-| without resource_gap | 0.680 | +0.164, p < 0.0001 | **removing it improves agreement** |
-| without chronic | 0.286 | −0.231, p < 0.0001 | carries signal |
-| without svi | 0.207 | −0.310, p < 0.0001 | carries signal |
+| without heat | 0.562 | +0.045, CI −0.058 to 0.128 | **no detectable effect** |
+| without resource_gap | 0.680 | +0.164, CI 0.107 to 0.240 | **removing it improves agreement** |
+| without chronic | 0.286 | −0.231, CI −0.359 to −0.105 | carries signal |
+| without svi | 0.207 | −0.310, CI −0.423 to −0.188 | carries signal |
 
 **Correction to emphasis.** The report leads with the forecast heat pillar's weak
 agreement with historical harm (ρ +0.12), which is true — but heat's *presence in the

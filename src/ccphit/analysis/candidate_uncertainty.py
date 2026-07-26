@@ -8,18 +8,20 @@ the report's central recommendation — that the current four-pillar index mixes
 decisions and should be split — but they are reported without uncertainty, so a reader
 cannot tell whether 0.52 and 0.74 are meaningfully different or the same number twice.
 
-Two gaps are closed here.
+Three gaps are closed here.
 
-**Uncertainty.** Each correlation gets a percentile bootstrap confidence interval by
-resampling ZIP-code areas with replacement. No distributional assumption, and the
-procedure is explainable in one sentence: *if we had drawn a different sample of
-neighbourhoods, how much would this number move?*
+**Uncertainty.** Nearby ZIP-code areas share environmental and demographic processes,
+so treating 282 areas as 282 independent observations would make the intervals too
+confident. The primary analysis groups nearby areas into 12 compact geographic blocks,
+then resamples whole blocks with replacement. In plain language: *if the county contained
+a somewhat different mix of geographic regions, how much would this number move?*
 
 **Comparison.** The candidates are scored on the *same* areas against the *same*
 benchmark, so their correlations are statistically dependent and cannot be compared as
 if independent. Bootstrapping the **difference** handles the dependence directly: each
 resample recomputes both correlations on the same resampled areas, so the pairing is
-preserved. A difference interval excluding zero means the designs genuinely disagree.
+preserved. A difference interval excluding zero is evidence that the result survives
+geographic resampling.
 
 **Sample alignment.** `validation.py` computes each candidate on its own complete rows,
 so "susceptibility only" used 285 areas and the others 282. Comparing correlations
@@ -29,9 +31,10 @@ the common complete subset.
 
 import numpy as np
 import pandas as pd
+from sklearn.cluster import KMeans
 
 from ccphit.analysis import figures
-from ccphit.config import load_config
+from ccphit.config import CRS_M, load_config
 from ccphit.io import read_processed, write_processed
 
 BENCHMARK = "historical_heat_er"
@@ -39,6 +42,7 @@ BOOTSTRAP = 5_000
 SEED = 20260725
 CI = 95
 BASELINE = "current four-pillar"
+SPATIAL_BLOCKS = 12
 
 
 def candidate_scores(d: pd.DataFrame) -> dict[str, pd.Series]:
@@ -78,22 +82,52 @@ def spearman(a: np.ndarray, b: np.ndarray) -> float:
     return float((ra @ rb) / denom) if denom else np.nan
 
 
+def assign_spatial_blocks(
+    coordinates: np.ndarray, n_blocks: int = SPATIAL_BLOCKS, seed: int = SEED
+) -> np.ndarray:
+    """Group nearby projected centroids into reproducible compact blocks."""
+    coordinates = np.asarray(coordinates)
+    if coordinates.ndim != 2 or coordinates.shape[1] != 2:
+        raise ValueError("coordinates must have shape (n_areas, 2)")
+    if not 2 <= n_blocks <= len(coordinates):
+        raise ValueError("n_blocks must be between 2 and the number of areas")
+    return KMeans(n_clusters=n_blocks, random_state=seed, n_init=20).fit_predict(
+        coordinates
+    )
+
+
 def bootstrap_correlations(
     scores: dict[str, pd.Series],
     benchmark: pd.Series,
     draws: int = BOOTSTRAP,
     seed: int = SEED,
+    blocks: pd.Series | np.ndarray | None = None,
 ) -> pd.DataFrame:
-    """Resample areas with replacement; recompute every candidate on the same draw."""
+    """Resample paired observations, using whole spatial blocks when supplied."""
     names = list(scores)
     X = np.column_stack([scores[n].to_numpy() for n in names])
     y = benchmark.to_numpy()
     n = len(y)
+    block_values = None if blocks is None else np.asarray(blocks)
+    if block_values is not None:
+        if len(block_values) != n:
+            raise ValueError("blocks must have one label per observation")
+        if pd.isna(block_values).any():
+            raise ValueError("blocks cannot contain missing labels")
+        unique_blocks = np.unique(block_values)
+        if len(unique_blocks) < 2:
+            raise ValueError("blocks must contain at least two unique labels")
 
     rng = np.random.default_rng(seed)
     out = np.empty((draws, len(names)))
     for b in range(draws):
-        idx = rng.integers(0, n, n)
+        if block_values is None:
+            idx = rng.integers(0, n, n)
+        else:
+            selected = rng.choice(unique_blocks, size=len(unique_blocks), replace=True)
+            idx = np.concatenate(
+                [np.flatnonzero(block_values == block) for block in selected]
+            )
         yb = y[idx]
         for j in range(len(names)):
             out[b, j] = spearman(X[idx, j], yb)
@@ -134,8 +168,8 @@ def paired_differences(
                 "rho_difference": observed[name] - observed[baseline],
                 f"ci{ci}_low": low,
                 f"ci{ci}_high": high,
-                # Two-sided bootstrap p: how often does the difference cross zero?
-                "p_two_sided": 2 * min((diff <= 0).mean(), (diff >= 0).mean()),
+                "draws_at_or_below_zero": int((diff <= 0).sum()),
+                "draws_at_or_above_zero": int((diff >= 0).sum()),
                 "excludes_zero": bool(low > 0 or high < 0),
             }
         )
@@ -157,7 +191,6 @@ def figure_intervals(summary: pd.DataFrame, diffs: pd.DataFrame, ci: int = CI):
     ax.set_yticks(y, order["candidate"])
     ax.set_xlabel(f"rank agreement with historical harm ({ci}% CI)")
     ax.set_title("Every candidate, with uncertainty")
-    figures.annotate(ax, "red = current index", "lower right")
 
     ax = axes[1]
     order = diffs.sort_values("rho_difference")
@@ -173,11 +206,10 @@ def figure_intervals(summary: pd.DataFrame, diffs: pd.DataFrame, ci: int = CI):
     )
     ax.set_yticks(y, order["candidate"])
     ax.set_xlabel(f"difference vs the current index ({ci}% CI)")
-    ax.set_title("Which designs genuinely differ?")
-    figures.annotate(ax, "interval clear of 0 = real difference", "lower right")
+    ax.set_title("Which differences survive geographic resampling?")
 
     fig.suptitle(
-        "The split recommendation rests on these gaps being real, not noise", y=1.04
+        "Geographic resampling tests whether candidate gaps are stable", y=1.04
     )
     return fig
 
@@ -189,6 +221,7 @@ if __name__ == "__main__":
     config = load_config()
 
     d = read_processed("external_validation", config, require=["zcta", BENCHMARK])
+    boundaries = read_processed("zcta_bounds", config, geo=True, require=["zcta"])
     scores = candidate_scores(d)
 
     # Common complete subset: comparing correlations measured on different samples
@@ -196,28 +229,46 @@ if __name__ == "__main__":
     complete = d[BENCHMARK].notna()
     for s in scores.values():
         complete &= s.notna()
-    d, n_all = d[complete], len(d)
-    scores = {k: v[complete] for k, v in scores.items()}
+    d, n_all = d[complete].reset_index(drop=True), len(d)
+    scores = candidate_scores(d)
+    boundaries = boundaries[boundaries["zcta"].isin(d["zcta"])].to_crs(CRS_M).copy()
+    centers = boundaries.geometry.representative_point()
+    coordinates = np.column_stack([centers.x, centers.y])
+    boundaries["spatial_block"] = assign_spatial_blocks(coordinates)
+    block_by_zcta = boundaries.set_index("zcta")["spatial_block"]
+    blocks = d["zcta"].map(block_by_zcta).to_numpy()
     print(f"common complete subset: {len(d)} of {n_all} ZCTAs")
     print(f"(validation.py reports 282-285 per candidate; aligning costs "
           f"{285 - len(d)} area(s) but makes the comparison valid)\n")
+    block_sizes = pd.Series(blocks).value_counts()
+    print(
+        f"spatial bootstrap: {len(block_sizes)} compact blocks, "
+        f"{block_sizes.min()}-{block_sizes.max()} ZCTAs per block\n"
+    )
 
     observed = {k: spearman(v.to_numpy(), d[BENCHMARK].to_numpy()) for k, v in scores.items()}
-    boot = bootstrap_correlations(scores, d[BENCHMARK])
+    boot = bootstrap_correlations(scores, d[BENCHMARK], blocks=blocks)
 
     summary = summarize(observed, boot)
-    print(f"=== rank agreement with historical harm ({BOOTSTRAP:,} bootstrap draws) ===")
+    summary.insert(1, "resampling", f"{SPATIAL_BLOCKS} spatial blocks")
+    print(
+        f"=== rank agreement with historical harm "
+        f"({BOOTSTRAP:,} spatial-block bootstrap draws) ==="
+    )
     print(summary.round(3).to_string(index=False))
 
     diffs = paired_differences(observed, boot)
-    print(f"\n=== difference from '{BASELINE}' (paired bootstrap) ===")
+    diffs.insert(1, "resampling", f"{SPATIAL_BLOCKS} spatial blocks")
+    print(f"\n=== difference from '{BASELINE}' (paired spatial-block bootstrap) ===")
     print(diffs.round(4).to_string(index=False))
 
     print("\n=== reading ===")
     for r in diffs.itertuples():
         verdict = (
-            "genuinely better" if r.excludes_zero and r.rho_difference > 0
-            else "genuinely worse" if r.excludes_zero
+            "higher; spatial interval excludes 0"
+            if r.excludes_zero and r.rho_difference > 0
+            else "lower; spatial interval excludes 0"
+            if r.excludes_zero
             else "NOT distinguishable from the current index"
         )
         print(f"  {r.candidate:22s} {r.rho_difference:+.3f}  -> {verdict}")
@@ -234,8 +285,9 @@ if __name__ == "__main__":
     loo_observed = {
         k: spearman(v.to_numpy(), d[BENCHMARK].to_numpy()) for k, v in loo.items()
     }
-    loo_boot = bootstrap_correlations(loo, d[BENCHMARK])
+    loo_boot = bootstrap_correlations(loo, d[BENCHMARK], blocks=blocks)
     loo_diffs = paired_differences(loo_observed, loo_boot, baseline="all four pillars")
+    loo_diffs.insert(1, "resampling", f"{SPATIAL_BLOCKS} spatial blocks")
 
     print("\n=== which pillar is dragging historical agreement down? ===")
     print("(equal-weight index, one pillar removed at a time)\n")

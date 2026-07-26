@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from ccphit.analysis.candidate_uncertainty import (
+    assign_spatial_blocks,
     bootstrap_correlations,
     leave_one_pillar_out,
     paired_differences,
@@ -70,6 +71,52 @@ def test_bootstrap_is_reproducible_for_a_fixed_seed():
     pd.testing.assert_frame_equal(a, b)
 
 
+def test_spatial_block_bootstrap_is_reproducible_for_a_fixed_seed():
+    d = frame()
+    blocks = np.repeat(np.arange(12), 10)
+    scores = {"svi": d["svi_pct"]}
+    a = bootstrap_correlations(
+        scores, d["historical_heat_er"], draws=200, seed=5, blocks=blocks
+    )
+    b = bootstrap_correlations(
+        scores, d["historical_heat_er"], draws=200, seed=5, blocks=blocks
+    )
+    pd.testing.assert_frame_equal(a, b)
+
+
+def test_spatial_blocks_group_nearby_coordinates_reproducibly():
+    coordinates = np.array(
+        [
+            [0.0, 0.0],
+            [0.0, 1.0],
+            [1.0, 0.0],
+            [100.0, 100.0],
+            [100.0, 101.0],
+            [101.0, 100.0],
+        ]
+    )
+    a = assign_spatial_blocks(coordinates, n_blocks=2, seed=5)
+    b = assign_spatial_blocks(coordinates, n_blocks=2, seed=5)
+
+    np.testing.assert_array_equal(a, b)
+    assert len(set(a[:3])) == 1
+    assert len(set(a[3:])) == 1
+    assert a[0] != a[3]
+
+
+def test_spatial_bootstrap_rejects_an_unusable_block_vector():
+    d = frame()
+    scores = {"svi": d["svi_pct"]}
+    with pytest.raises(ValueError, match="one label per observation"):
+        bootstrap_correlations(
+            scores, d["historical_heat_er"], draws=10, blocks=np.zeros(len(d) - 1)
+        )
+    with pytest.raises(ValueError, match="at least two"):
+        bootstrap_correlations(
+            scores, d["historical_heat_er"], draws=10, blocks=np.zeros(len(d))
+        )
+
+
 def test_a_larger_sample_gives_a_tighter_interval():
     small = frame(n=60, seed=1)
     large = frame(n=600, seed=1)
@@ -106,7 +153,8 @@ def test_a_genuinely_better_candidate_is_detected():
 
     assert diff["rho_difference"] > 0
     assert diff["excludes_zero"]
-    assert diff["p_two_sided"] < 0.05
+    assert diff["draws_at_or_below_zero"] < 30
+    assert "p_two_sided" not in diff.index
 
 
 def test_the_baseline_is_excluded_from_its_own_comparison():
