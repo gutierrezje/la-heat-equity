@@ -275,3 +275,15 @@ forecast-driven product.
 
 **Not done:** the score was left unchanged. Removing a pillar is a methodology decision
 for the mentor conversation, and this entry is the evidence for it, not the authority.
+
+## D34 — Frame July 25 as a short-term snapshot, not “current” conditions
+
+**Decision:** public copy calls the response view a **short-term response
+snapshot** and names the forecast issue date, July 25, 2026. Statements about
+the 16 qualifying ZIP-code areas use past tense: they *met* the short-term
+response rule for that snapshot.
+
+**Why:** the final StoryMap is a fixed case study of one hot week. Calling the
+view “current” would imply live operational guidance and become false as soon
+as conditions changed. Internal `response_*` fields remain stable to avoid an
+unnecessary ArcGIS schema migration.

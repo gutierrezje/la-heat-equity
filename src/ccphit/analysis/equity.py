@@ -103,7 +103,7 @@ def figure_priority_population(summary: pd.DataFrame):
             )
     ax.set_xticks(range(len(grid.columns)), grid.columns)
     ax.set_yticks(range(len(grid.index)), grid.index)
-    ax.set_xlabel("current seven-day peak CalHeatScore")
+    ax.set_xlabel("seven-day forecast snapshot peak CalHeatScore")
     ax.set_ylabel("social vulnerability rank")
     ax.set_title(
         "Residents of explicitly defined heat × vulnerability categories\n"

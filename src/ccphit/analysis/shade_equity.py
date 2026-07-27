@@ -41,7 +41,7 @@ def shade_correlations(d: pd.DataFrame) -> pd.DataFrame:
         "historical_heat_er": "historical heat harm",
         "svi_pct": "social vulnerability",
         "chronic_pct": "chronic disease",
-        "heat_risk": "current forecast peak",
+        "heat_risk": "forecast snapshot peak",
     }
     rows = []
     for shade_column in ["vegetation_shade_pct", "total_shade_pct"]:
