@@ -5,26 +5,25 @@ and Dashboard. Follow it in order. Do not redesign the methods during the build.
 
 ## Before opening ArcGIS — 10 minutes
 
-From the repository root:
+This submission is a fixed case study of the forecast issued **25 July 2026**.
+It is not a live-conditions product. From the repository root, rebuild from the
+archived forecast rather than fetching a new one:
 
 ```bash
-uv run python -m ccphit.run
+cp data/processed/heat_scores.parquet /tmp/heat_scores_before_storymap.parquet
+cp data/history/heat_scores_2026-07-25.parquet data/processed/heat_scores.parquet
+uv run python -m ccphit.run --from zip_to_zcta
 uv run pytest -q
 ```
 
-The final pipeline stage prints the current headline values. Copy them into the
-four bracketed fields in `docs/STORYMAP_COPY.md`:
+Confirm that the rebuilt `zcta_scores.geojson` reports `forecast_date` as
+`2026-07-25`. The `/tmp` copy preserves a newer processed forecast, if one
+existed, for restoration after the build.
 
-- forecast date;
-- current-response ZCTA count and population;
-- investment ZCTA count and population.
+Use these fixed case-study values:
 
-Expected structural result with the present source vintages:
-
+- short-term response: 16 ZCTAs and 878,241 residents;
 - long-term investment: 36 ZCTAs and 1,723,130 residents.
-
-The current-response values can change with the forecast. Do not reuse an old
-number without rerunning the pipeline.
 
 Confirm these files exist:
 
@@ -79,11 +78,11 @@ Dashboard selections remain available.
 Create two web maps from the same hosted ZCTA layer. This avoids asking one
 renderer to explain two policy questions.
 
-### Web map A — Current Response
+### Web map A — Short-Term Response
 
 **Title**
 
-> LA Heat Equity — Current Response
+> LA Heat Equity — Short-Term Response
 
 Render unique values from `response_category`:
 
@@ -92,7 +91,7 @@ Render unique values from `response_category`:
 | Extreme heat + high vulnerability | `#7F0000` | headline priority |
 | Extreme heat | `#D7301F` | severe forecast |
 | High vulnerability | `#FC8D59` | structural susceptibility |
-| Other current conditions | `#FEE8C8` | comparison |
+| Other short-term snapshot conditions | `#FEE8C8` | comparison |
 | No data | `#BDBDBD` | unavailable |
 
 Use white polygon outlines at approximately 0.4 px. Set about 80–85% fill
@@ -167,7 +166,8 @@ priority categories.
 
 **Subtitle**
 
-> Current response, long-term investment, and listed cooling resources
+> July 25 short-term response snapshot, long-term investment, and listed
+> cooling resources
 
 ### Desktop layout
 
@@ -177,8 +177,8 @@ Use a dark charcoal header (`#252525`) and an off-white body (`#F7F7F5`).
 ┌─────────────────────────────────────────────────────────────┐
 │ Header: title · forecast date · community selector          │
 ├───────────────────────────────────┬─────────────────────────┤
-│ Tabbed maps                       │ Current indicator       │
-│ [Current Response] [Investment]   │ Investment indicator    │
+│ Tabbed maps                       │ Short-term indicator    │
+│ [Short-Term Response] [Investment]│ Investment indicator    │
 │                                   ├─────────────────────────┤
 │                                   │ 7-day forecast chart    │
 ├───────────────────────────────────┼─────────────────────────┤
@@ -189,18 +189,18 @@ Use a dark charcoal header (`#252525`) and an off-white body (`#F7F7F5`).
 ArcGIS Dashboards supports a tabbed view by stacking elements. Add the two map
 elements and drag one onto the center of the other. Label the tabs exactly:
 
-- Current Response
+- Short-Term Response
 - Long-Term Investment
 
 Official layout reference:
 <https://doc.arcgis.com/en/dashboards/latest/get-started/dashboard-layout.htm>
 
-### Indicator 1 — Current response
+### Indicator 1 — Short-term response
 
 - Data: ZCTA hosted layer
 - Filter: `response_priority is 1`
 - Statistic: sum of `POP100`
-- Title: `Residents in current response-priority areas`
+- Title: `Residents in areas that met the short-term response rule`
 - Number: comma separated, zero decimals
 - Caption: `Extreme forecast heat + upper-third vulnerability`
 - Color: `#7F0000`
@@ -231,7 +231,7 @@ Add a smaller ZCTA-count indicator if space permits.
 - Value label: `CalHeatScore`
 - Axis range: 0–4
 - Title: `Selected area: seven-day heat forecast`
-- No selection text: `Select a ZIP-code area on the Current Response map`
+- No selection text: `Select a ZIP-code area on the Short-Term Response map`
 
 Categories-from-fields charts do not support selection actions. Treat this as a
 display target filtered by map selection, not a controller.
@@ -256,7 +256,7 @@ filter it. Show:
 
 - place/community;
 - ZCTA;
-- current response category;
+- short-term response category for the July 25 snapshot;
 - long-term investment category;
 - peak forecast;
 - SVI percentile;
@@ -267,7 +267,8 @@ filter it. Show:
 
 Before selection, display:
 
-> Select a ZIP-code area to compare current and long-term conditions.
+> Select a ZIP-code area to compare the July 25 snapshot with long-term
+> conditions.
 
 ### Community selector
 
@@ -293,8 +294,8 @@ legends and popups.
 
 Create a mobile view. Minimum mobile order:
 
-1. Current response indicator
-2. Current response map
+1. Short-term response indicator
+2. Short-term response map
 3. Seven-day forecast
 4. Long-term investment indicator
 5. Investment map
@@ -320,7 +321,7 @@ Do not put every analysis figure in the main narrative. Three figures plus the
 Dashboard embed are enough. Move chronic sensitivity and spatial clustering
 into an optional methods accordion or omit them from the public story.
 
-Use the Current Response web map early and Long-Term Investment map after the
+Use the Short-Term Response web map early and Long-Term Investment map after the
 validation turn. Embed the Dashboard once; repeated full Dashboard embeds make
 the story feel like documentation rather than narrative.
 
@@ -348,7 +349,7 @@ Open the public URLs in a signed-out/private browser and verify:
 - [ ] Dashboard loads without an organization login.
 - [ ] Both hosted layers are shared at the same level as the applications.
 - [ ] Both map tabs render and have correct legends.
-- [ ] Current and investment population indicators match the pipeline output.
+- [ ] Short-term and investment population indicators match the pipeline output.
 - [ ] Community selector filters both ZCTA views.
 - [ ] Clicking a ZCTA updates details and the forecast chart.
 - [ ] Cooling-center list shows name, address, and hours.
@@ -363,7 +364,7 @@ Open the public URLs in a signed-out/private browser and verify:
 Take three screenshots only after QA:
 
 1. StoryMap opening;
-2. Current Response Dashboard;
+2. Short-Term Response Dashboard;
 3. Long-Term Investment Dashboard.
 
 ## Two-minute demonstration outline
@@ -373,14 +374,14 @@ Take three screenshots only after QA:
 > The project began as one heat-equity score. Testing showed that emergency
 > response and long-term investment need different maps.
 
-**0:20–0:50 — current response**
+**0:20–0:50 — short-term response**
 
-Show the current map, forecast date, priority population, and one selected
+Show the short-term snapshot map, forecast date, priority population, and one selected
 Long Beach/Southeast LA ZCTA.
 
 **0:50–1:15 — validation**
 
-Show the historical-validation figure. Explain that current weather weakly
+Show the historical-validation figure. Explain that the July 25 forecast weakly
 resembles historical harm, while vulnerability and chronic susceptibility
 align much more strongly.
 
@@ -398,4 +399,3 @@ people find resources but distance is not a complete measure of access.
 
 > The final product is smaller than the research laboratory, but every public
 > field survived a documented test.
-

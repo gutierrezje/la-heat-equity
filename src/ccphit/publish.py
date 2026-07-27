@@ -116,13 +116,15 @@ def item_summary(gdf: gpd.GeoDataFrame) -> dict:
     as_of_date = as_of(gdf)
     return {
         "snippet": (
-            f"LA County heat equity by ZCTA: current response and long-term "
-            f"investment views. Heat forecast as of {as_of_date}."
+            f"LA County heat equity by ZCTA: short-term response snapshot and "
+            f"long-term investment views. Forecast issued {as_of_date}; not live."
         ),
         "description": (
             "One Los Angeles County ZCTA layer supporting two policy questions. "
-            "<b>Current response</b> combines the current CalHeatScore forecast with "
-            "CDC/ATSDR Social Vulnerability Index. <b>Long-term investment</b> screens "
+            f"<b>Short-term response snapshot</b> combines the CalHeatScore forecast "
+            f"issued {as_of_date} with CDC/ATSDR Social Vulnerability Index. It is a "
+            "dated case study, not a statement of present conditions. "
+            "<b>Long-term investment</b> screens "
             "for the joint presence of upper-third historical excess emergency-room "
             "heat harm, upper-third vulnerability, and lower-third modeled vegetation "
             "shade. Chronic disease estimates from CDC PLACES provide susceptibility "
@@ -133,7 +135,7 @@ def item_summary(gdf: gpd.GeoDataFrame) -> dict:
             "does not state how many people will be harmed. The legacy four-pillar "
             "draft score and straight-line cooling-center distance remain temporarily "
             "for Dashboard migration and should not lead the public narrative. "
-            f"<br/><br/>Heat forecast as of {as_of_date}. Produced from code; see the "
+            f"<br/><br/>Forecast issued {as_of_date}. Produced from code; see the "
             "project repository for methodology."
         ),
     }

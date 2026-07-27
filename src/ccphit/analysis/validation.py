@@ -1,7 +1,7 @@
-"""Compare the current index with LA County's historical excess-ER heat geography.
+"""Compare the legacy draft index with LA County's historical excess-ER heat geography.
 
 This is criterion validation, not another score component. It asks a policy-readable
-question: do the places forecast to be hottest this week resemble the places where heat
+question: do the places hottest in this forecast snapshot resemble the places where heat
 has historically produced excess emergency-room visits?
 """
 
@@ -15,7 +15,7 @@ from ccphit.conform.tract_to_zcta import interpolate_to_zcta
 from ccphit.io import read_processed, write_processed
 
 MEASURES = {
-    "heat_risk": "current forecast peak",
+    "heat_risk": "forecast snapshot peak",
     "svi_pct": "social vulnerability",
     "chronic_pct": "chronic disease",
     "resource_gap_pct": "listed-centre distance",
@@ -45,7 +45,7 @@ def candidate_score_comparison(d: pd.DataFrame) -> pd.DataFrame:
     """Compare simple score designs with historical harm.
 
     Historical agreement is diagnostic, not the sole selection rule: an operational
-    response index should still react to the current forecast.
+    response index should still react to the forecast snapshot.
     """
     candidates = {
         "current four-pillar": d["draft_score"],
@@ -96,7 +96,7 @@ def top_set_agreement(
 
 
 def priority_set_comparison(d: pd.DataFrame) -> dict[str, int]:
-    """Compare current and historical high-heat/high-vulnerability categories."""
+    """Compare snapshot and historical high-heat/high-vulnerability categories."""
     cells = d.dropna(subset=["zcta", "POP100", "svi_pct"]).copy()
     svi_cut = cells["svi_pct"].quantile(2 / 3)
     high_svi = cells["svi_pct"] >= svi_cut
@@ -135,9 +135,9 @@ def figure_validation(d: pd.DataFrame, correlations: pd.DataFrame):
     ]
     labels = [str(int(score)) for score in sorted(d["heat_risk"].dropna().unique())]
     ax.boxplot(forecast_groups, tick_labels=labels, showfliers=False)
-    ax.set_xlabel("current seven-day peak CalHeatScore")
+    ax.set_xlabel("seven-day forecast snapshot peak CalHeatScore")
     ax.set_ylabel("historical excess-ER heat score")
-    ax.set_title("This week's forecast only weakly\nresembles historical harm")
+    ax.set_title("One hot-week forecast only weakly\nresembles historical harm")
 
     ax = axes[1]
     cells = classify_priority_cells(d)

@@ -22,14 +22,14 @@ make operating details harder to maintain.
 
 Use two selectors or tabs over the same ZCTA layer.
 
-### Current response
+### Short-term response snapshot
 
 - Map style: unique values on `response_category`.
 - Headline filter: `response_priority = 1`.
-- Indicator: sum `POP100` after that filter, labelled “Residents in current
-  response-priority areas.”
+- Indicator: sum `POP100` after that filter, labelled “Residents in areas that
+  met the short-term response rule.”
 - Secondary indicator: count of `zcta`.
-- Popup order: place, ZCTA, current seven-day peak (`heat_risk`), days at
+- Popup order: place, ZCTA, July 25 seven-day peak (`heat_risk`), days at
   CalHeatScore 3+ (`heat_days_ge_3`), SVI percentile (`svi_pct`), chronic
   percentile (`chronic_pct`), response category.
 - Trend/chart: `heat_day_0` through `heat_day_6`. Label these with the forecast
@@ -63,10 +63,10 @@ volatile and distance is not access, capacity, travel time, or availability.
 
 ## StoryMap sequence
 
-1. **The policy distinction:** emergency response this week is not the same
-   question as long-term heat investment.
-2. **Current conditions:** embed the Dashboard on the response view; explain
-   the forecast date and the two-factor category.
+1. **The policy distinction:** a short-term response snapshot from one hot week
+   is not the same question as long-term heat investment.
+2. **July 25 snapshot:** embed the Dashboard on the response view; explain that
+   the dated forecast and two-factor category do not describe present conditions.
 3. **Why vulnerability matters:** show the historical validation figure and
    explain rank correlation in one sentence: areas with higher vulnerability
    tend to rank higher in historical heat-related emergency-room harm.
@@ -95,9 +95,9 @@ through overwrites. The same contract is available for scripts and QA at
 | `chronic_pct` | Chronic susceptibility percentile | 0–100, 1 decimal |
 | `historical_heat_er` | Historical excess-ER heat score | 1 decimal |
 | `vegetation_shade_pct` | Vegetation shade at 3 p.m. | percent, 1 decimal |
-| `response_index` | Current response index | 0–100, 1 decimal; secondary |
-| `response_category` | Current response category | unique-value renderer |
-| `response_priority` | Current response priority | hidden 0/1 filter |
+| `response_index` | Short-term response index | 0–100, 1 decimal; secondary |
+| `response_category` | July 25 response category | unique-value renderer |
+| `response_priority` | Met short-term response rule | hidden 0/1 filter |
 | `investment_category` | Long-term investment category | unique-value renderer |
 | `investment_priority` | Long-term investment priority | hidden 0/1 filter |
 | `dist_m` | Nearest listed center distance | metres; context only |

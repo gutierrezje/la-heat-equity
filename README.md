@@ -15,9 +15,10 @@ from source.
 ## Why this exists
 
 Extreme heat is the deadliest weather hazard in the US, and its harm is not evenly
-distributed. Current forecast severity, historical emergency-room harm, underlying
-susceptibility, and protective infrastructure are related but distinct. The pipeline's job is
-to measure those relationships rather than assume they identify the same places.
+distributed. Short-term forecast-snapshot severity, historical emergency-room harm,
+underlying susceptibility, and protective infrastructure are related but distinct. The
+final case study freezes the forecast issued July 25, 2026 rather than claiming to show
+live conditions.
 
 The hard part is not the map — it is that the sources arrive on **several different
 geographies**. Reconciling them onto ZIP Code Tabulation Areas without inventing detail is the

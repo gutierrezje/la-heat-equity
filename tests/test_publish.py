@@ -15,7 +15,7 @@ def layer(forecast_date="2026-07-24", n=2):
     cols = {
         "zcta": [f"9000{i}" for i in range(n)],
         "draft_score": [70.0, None],
-        "response_category": ["Other current conditions"] * n,
+        "response_category": ["Other short-term snapshot conditions"] * n,
         "response_priority": [0] * n,
         "investment_category": ["Other structural conditions"] * n,
         "investment_priority": [0] * n,
@@ -58,7 +58,8 @@ def test_item_metadata_states_the_two_views_date_and_caveats():
     assert "2026-07-24" in meta["snippet"]
     # the misreading most likely to end up in a public narrative
     assert "intensity, not a count" in meta["description"]
-    assert "Current response" in meta["description"]
+    assert "Short-term response snapshot" in meta["description"]
+    assert "not a statement of present conditions" in meta["description"]
     assert "Long-term investment" in meta["description"]
     assert "interpolation" in meta["description"]
     assert "straight-line" in meta["description"]

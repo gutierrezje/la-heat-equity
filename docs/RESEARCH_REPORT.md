@@ -2,11 +2,11 @@
 
 ## Executive finding
 
-Los Angeles County needs different information for an emergency this week and
-for investment over the next decade.
+Los Angeles County needs different information for short-term response during
+one hot week and for investment over the next decade.
 
-- **Emergency response:** Where will the current forecast be most dangerous for
-  people who are already more susceptible?
+- **Short-term response snapshot:** Where did the forecast issued July 25,
+  2026 overlap with people who were already more susceptible?
 - **Long-term investment:** Where has heat historically caused harm, and which
   protective conditions are missing?
 
@@ -14,25 +14,25 @@ The original four-pillar score mixed these decisions. The experiments show why
 they should be separated.
 
 This analysis covers 294 ZIP Code Tabulation Areas (ZIP-code areas), of which
-282 have complete values for the current draft index. PLACES and SVI remain the
+282 have complete values for the legacy four-pillar draft index. PLACES and SVI remain the
 two assignment-required sources throughout.
 
-## 1. This week's forecast is not the same map as historical harm
+## 1. The July 25 hot-week snapshot is not the same map as historical harm
 
 LA County's
 [Climate-Ready Communities Assessment 2023](https://www.arcgis.com/home/item.html?id=fefe544f3ddb413a82ebb11e2a42f974)
 publishes a tract-level heat score based on excess emergency-room visits. After
 translating that score to the project's ZIP-code areas, the
-current seven-day peak CalHeatScore has only **0.13 rank agreement** with
-historical heat harm. In plain language, areas near the top of this week's
-forecast are often not the areas near the top of the historical harm map.
+July 25 seven-day peak CalHeatScore has only **0.13 rank agreement** with
+historical heat harm. In plain language, areas near the top of that hot-week
+forecast were often not the areas near the top of the historical harm map.
 
 Social vulnerability and chronic disease align much more strongly with
 historical harm:
 
 | Project measure | Rank agreement with historical harm |
 |---|---:|
-| Current forecast peak | +0.13 |
+| July 25 forecast peak | +0.13 |
 | Social vulnerability | +0.68 |
 | Chronic disease | +0.71 |
 | Four-pillar draft index | +0.52 |
@@ -49,9 +49,9 @@ narrower and more useful statement:
 
 ### Two priority groups
 
-For current response, **16 ZIP-code areas containing 878,241 residents** are
-both in the upper third for social vulnerability and at CalHeatScore 4 in the
-current forecast.
+**Sixteen ZIP-code areas containing 878,241 residents met the short-term
+response rule**: upper-third social vulnerability and CalHeatScore 4 in the
+forecast issued July 25, 2026.
 
 For structural investment, **68 areas containing 3,359,117 residents** are both
 in the upper third for vulnerability and the upper third for historical heat
@@ -70,10 +70,10 @@ people at risk.
 The replacement simply declares the heat and vulnerability categories and then
 counts Census population once:
 
-![Population by current priority category](figures/equity_priority_population.png)
+![Population by July 25 snapshot category](figures/equity_priority_population.png)
 
 The largest cell is not the most extreme one: 2.09 million residents live in
-upper-third-vulnerability areas with a current CalHeatScore of 3. The
+upper-third-vulnerability areas with a July 25 CalHeatScore of 3. The
 upper-third/extreme cell contains 878,241 residents. Both numbers are
 understandable without pretending the index is a case count.
 
@@ -109,7 +109,7 @@ Vegetation shade is lower where structural need is higher:
 | Historical heat harm | −0.43 |
 | Social vulnerability | −0.44 |
 | Chronic disease | −0.42 |
-| Current forecast peak | +0.15 |
+| July 25 forecast peak | +0.15 |
 
 A simple screen—upper third historical harm, upper third vulnerability, and
 lower third vegetation shade—identifies **36 areas and 1,723,130 residents**.
@@ -118,7 +118,7 @@ several Lancaster/Palmdale areas.
 
 ![Shade equity experiment](figures/shade_equity.png)
 
-Shade does not belong inside the current-response score: it is a potential
+Shade does not belong inside the short-term response score: it is a potential
 intervention condition, and this observational analysis does not estimate a
 causal health effect. It does, however, give the long-term investment map a
 concrete and policy-relevant next question.
@@ -179,8 +179,8 @@ understand its mechanics to follow the main response-versus-investment result.
 
 Keep the public product small:
 
-1. **Current Response**
-   - current seven-day heat forecast;
+1. **Short-Term Response Snapshot**
+   - archived seven-day heat forecast issued July 25, 2026;
    - social vulnerability and CDC-aligned chronic susceptibility;
    - bivariate category and population count;
    - secondary scalar index only if the Dashboard requires one.
@@ -208,12 +208,13 @@ uv run python -m ccphit.analysis.equity
 uv run python -m ccphit.analysis.spatial
 ```
 
-The pipeline run fetches the current
-[CalHeatScore](https://calheatscore.calepa.ca.gov/) forecast, so current-response
-counts can change between runs. The historical-harm and shade layers describe
-published 2023 analyses. Generated tables and figures are written under
-`data/processed/` and `data/figures/`; selected report figures are tracked under
-`docs/figures/`.
+The pipeline can fetch the latest
+[CalHeatScore](https://calheatscore.calepa.ca.gov/) forecast, but this report
+freezes the forecast issued July 25, 2026. Rerunning against a later forecast
+will produce different short-term counts and must not silently replace the
+dated narrative. The historical-harm and shade layers describe published 2023
+analyses. Generated tables and figures are written under `data/processed/` and
+`data/figures/`; selected report figures are tracked under `docs/figures/`.
 
 ## Methods in one paragraph
 

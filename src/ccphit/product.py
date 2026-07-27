@@ -2,7 +2,7 @@
 
 The product has two views over one ZCTA layer:
 
-* current response: forecast severity + social vulnerability;
+* short-term response snapshot: forecast severity + social vulnerability;
 * long-term investment: historical heat harm + vulnerability + low shade.
 
 Category fields are calculated here rather than in ArcGIS expressions so every
@@ -53,7 +53,7 @@ def format_product(layer: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     out["response_priority"] = current.astype("int8")
     out["investment_priority"] = investment.astype("int8")
 
-    out["response_category"] = "Other current conditions"
+    out["response_category"] = "Other short-term snapshot conditions"
     out.loc[
         out["heat_risk"].eq(4) & ~out["svi_tercile"].eq(3),
         "response_category",

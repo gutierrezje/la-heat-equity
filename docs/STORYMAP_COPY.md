@@ -1,8 +1,8 @@
 # Paste-ready StoryMap copy
 
-This is the public-facing version of the research report. Replace bracketed
-snapshot values after the final pipeline run. Keep the technical detail in the
-last section rather than interrupting the narrative.
+This is the public-facing version of the research report. It describes the
+forecast snapshot issued 25 July 2026, not live conditions. Keep the technical
+detail in the last section rather than interrupting the narrative.
 
 ## Cover
 
@@ -12,8 +12,8 @@ last section rather than interrupting the narrative.
 
 **Subtitle**
 
-> Where Los Angeles County should respond during this week’s heat—and where
-> longer-term investment may matter most
+> What one hot week showed about short-term response—and where longer-term
+> investment may matter most
 
 **Optional kicker**
 
@@ -39,10 +39,10 @@ Extreme heat does not affect every community in the same way. The weather
 changes from week to week, while chronic illness, social vulnerability, the
 built environment, and access to protective resources change much more slowly.
 
-That distinction matters. Emergency managers need to know where the current
-forecast overlaps with vulnerable populations. Long-term planners need to know
-where heat has repeatedly produced harm and where protective conditions such as
-vegetation shade are scarce.
+That distinction matters. The July 25 forecast snapshot shows where one hot
+week overlapped with vulnerable populations. Long-term planners need to know
+where heat has repeatedly produced harm and where protective conditions such
+as vegetation shade are scarce.
 
 This project originally combined those questions in one score. Local outcome
 data showed that the result was easier to calculate than to interpret. The
@@ -50,28 +50,28 @@ atlas now presents two transparent views instead.
 
 **Transition sentence**
 
-> First: where are current conditions most concerning?
+> First: what did the July 25 forecast show for short-term response?
 
-## Section 1 — Current response
+## Section 1 — Short-term response
 
 ### Where extreme forecast heat meets high vulnerability
 
-For the forecast issued **[FORECAST DATE]**, the current-response map highlights
-ZIP-code areas that meet two conditions:
+For the forecast issued **25 July 2026**, the short-term response map highlights
+ZIP-code areas that met two conditions:
 
 1. a peak seven-day CalHeatScore of 4, indicating extreme forecast heat-health
    risk; and
 2. social vulnerability in the upper third of LA County ZIP-code areas.
 
-In this snapshot, **[CURRENT ZCTA COUNT] ZIP-code areas** containing
-**[CURRENT POPULATION] residents** meet both conditions.
+In this snapshot, **16 ZIP-code areas** containing **878,241 residents** met the
+short-term response rule.
 
 These are residents of areas that meet a screening rule. The number is not a
 forecast of illnesses, emergency-room visits, or deaths.
 
 **Embed**
 
-Embed the Dashboard with the Current Response map visible.
+Embed the Dashboard with the Short-Term Response map visible.
 
 **Dashboard instruction text**
 
@@ -96,11 +96,11 @@ properly licensed street-level image if one is available.
 
 ## Section 2 — Why one forecast is not the whole story
 
-### This week’s forecast and historical harm are different maps
+### One hot-week forecast and historical harm are different maps
 
 LA County’s Climate-Ready Communities Assessment includes a tract-level heat
 measure based on excess emergency-room visits. After translating it to the
-project’s ZIP-code areas, the current seven-day forecast has only **0.13 rank
+project’s ZIP-code areas, the July 25 seven-day forecast has only **0.13 rank
 agreement** with historical heat harm.
 
 Rank agreement asks a simple question: do places near the top of one measure
@@ -120,14 +120,15 @@ Upload and insert `docs/figures/external_validation.png`.
 
 **Figure caption**
 
-> Current forecast severity only weakly resembles the historical harm map.
+> Forecast severity in the July 25 snapshot only weakly resembles the
+> historical harm map.
 > Social vulnerability and chronic-health susceptibility align much more
 > strongly with observed historical harm.
 
 **Figure alt text**
 
 > Three-panel chart comparing historical heat-related emergency-room harm with
-> current CalHeatScore, social vulnerability, chronic disease, the draft index,
+> July 25 CalHeatScore, social vulnerability, chronic disease, the draft index,
 > and cooling-center distance.
 
 ## Section 3 — Long-term investment
@@ -140,8 +141,7 @@ The long-term investment screen highlights ZIP-code areas with:
 2. social vulnerability in the upper third; and
 3. modeled vegetation shade in the lower third.
 
-The screen identifies **[INVESTMENT ZCTA COUNT] ZIP-code areas** containing
-**[INVESTMENT POPULATION] residents**.
+The screen identifies **36 ZIP-code areas** containing **1,723,130 residents**.
 
 Vegetation shade is lower where historical harm, vulnerability, and chronic
 susceptibility are higher. That makes shade useful for identifying places where
@@ -248,7 +248,8 @@ or predict future case counts.
 
 ### Limitations
 
-- CalHeatScore is a current seven-day forecast and can change with every run.
+- The CalHeatScore view is an archived seven-day forecast issued 25 July 2026,
+  not a statement of present conditions.
 - PLACES values are modeled small-area estimates.
 - SVI and PLACES are not statistically independent; both incorporate
   demographic information.
@@ -276,8 +277,8 @@ or predict future case counts.
 
 ### Better decisions begin with asking which decision the map supports
 
-A current forecast can guide near-term response. Historical health outcomes and
-structural conditions can guide longer-term investigation. Cooling-center
+A dated forecast can illustrate short-term response. Historical health outcomes
+and structural conditions can guide longer-term investigation. Cooling-center
 locations can help people find a listed resource.
 
 None of those maps can do the others’ job by itself.
@@ -285,4 +286,3 @@ None of those maps can do the others’ job by itself.
 The most defensible heat-equity product is therefore not a universal ranking.
 It is a set of transparent views that state what was measured, what decision
 each view can support, and what the data cannot tell us.
-

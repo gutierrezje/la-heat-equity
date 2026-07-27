@@ -9,9 +9,9 @@ svi_pct,Social vulnerability percentile,"0-100, 1 decimal",both
 chronic_pct,Chronic susceptibility percentile,"0-100, 1 decimal",response
 historical_heat_er,Historical excess-ER heat score,1 decimal,investment
 vegetation_shade_pct,Vegetation shade at 3 p.m.,percent with 1 decimal,investment
-response_index,Current response index,"0-100, 1 decimal",response_secondary
-response_category,Current response category,unique-value renderer,response
-response_priority,Current response priority,hidden 0/1 filter,response
+response_index,Short-term response index,"0-100, 1 decimal",response_secondary
+response_category,Short-term snapshot category,unique-value renderer,response
+response_priority,Met short-term response rule,hidden 0/1 filter,response
 investment_category,Long-term investment category,unique-value renderer,investment
 investment_priority,Long-term investment priority,hidden 0/1 filter,investment
 dist_m,Nearest listed center distance,metres; context only,legacy
